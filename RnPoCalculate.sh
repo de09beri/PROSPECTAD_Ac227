@@ -29,6 +29,7 @@ MakeAcTreeClass()
 .q
 EOF
 
+mv RNPO* Calculate/
 fi
 
 #==============================================
@@ -50,7 +51,7 @@ fi
 # Run RnPoVsTime
 echo ========= Running RnPoVsTime =========
 
-if [ $3 -eq 1]
+if [ $3 -eq 1 ]
 then
 
 root -l -b <<EOF 
@@ -63,9 +64,8 @@ fi
 
 #==============================================
 # Run RnPoColVsTime and RnPoRunVsTime
-echo ========= Running RnPoVsTime =========
 
-if [ $4 -eq 1]
+if [ $4 -eq 1 ]
 then
 
 echo ======= Running RnPoColVsTime =======

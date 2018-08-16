@@ -6,7 +6,7 @@ p_lowE=0.57
 d_lowE=0.66
 zLow=-1000
 zHigh=1000
-timeBin=23.5
+timeBin=100000000;
 dtFit=1
 
 #==============================================
@@ -26,6 +26,8 @@ int RxStatus = 1;
 MakeAcTreeClass(RxStatus)
 .q
 EOF
+
+mv RNPO* Calculate/
 
 echo ========= Running RnPoVsCell =========
 root -l -b <<EOF 
@@ -59,6 +61,8 @@ MakeAcTreeClass(RxStatus)
 .q
 EOF
 
+mv RNPO* Calculate/
+
 echo ========= Running RnPoVsCell =========
 root -l -b <<EOF 
 .L Calculate/RnPoVsCell.C+
@@ -83,7 +87,7 @@ export AD_AC227_PLOTS=$P2X_ANALYZED/Plots
 
 echo ======= Running PlotRxOnVsRxOff =======
 root -l -b <<EOF 
-.L PlotRxOnVsRxOff.C+
+.L Plot/PlotRxOnVsRxOff.C+
 PlotRxOnVsRxOff()
 .q
 EOF
