@@ -133,19 +133,27 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 		double lastOCSTime = 0.0, OCSTime = 0.0;
 		double lastMuonVetoTime = 0.0, muonVetoTime = 0.0;
 
+		double lastNumClusts = 0.0, numClusts = 0.0;
+
 		for(Long64_t i=IDX;i<numEntries;i++){
 			if(i%100000==0) printf("Event: %lld \n",i);
 			rnpo->GetEntry(i);
 
+			if(rnpo->d_t*(1e-6) > ((double)((TVectorD*)rnpo->fChain->GetCurrentFile()->Get("runtime"))->Norm1()*1000.0 - (TIMEWINDOW+TIMEOFFSET)) && i!=(numEntries-1)) continue;
 			//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 			//Calculate livetime and weighted timestamp
 			if(rnpo->d_t < lastTime){ 
 				livetime += lastTime*(1e-6);		//livetime in ms	
 				livetime = livetime - (lastOCSTime*(1e-6));
-//				livetime = livetime - (lastMuonVetoTime*(1e-6));
+				livetime = livetime - (lastMuonVetoTime*(1e-6));
+
+				OCSTime += lastOCSTime*(1e-6);
+				muonVetoTime += lastMuonVetoTime*(1e-6);
 	
 				sumWeightedTimestamp += lastRunTime * ((lastRunTime/2.0)+lastTimestamp);
 				sumRunTime += lastRunTime;
+
+				numClusts += lastNumClusts;
 			}
 
 			if(livetime>TIMEBREAK){
@@ -160,16 +168,23 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 
 			lastTime = rnpo->d_t;
 			lastOCSTime = rnpo->OCSVeto_t;
-//			lastMuonVetoTime = rnpo->muonVeto_t;
+			lastMuonVetoTime = rnpo->muonVeto_t;
 			lastRunTime = ((TVectorD*)rnpo->fChain->GetCurrentFile()->Get("runtime"))->Norm1();		//seconds
 			lastTimestamp = rnpo->tstamp;			//epoch seconds	
+			lastNumClusts = rnpo->numClust;
 
 			//if we are at the last entry	
 			if(i == (numEntries-1)){ 
 				livetime += lastTime*(1e-6);
 				livetime = livetime - (lastOCSTime*(1e-6));
-//				livetime = livetime - (lastMuonVetoTime*(1e-6));
+				livetime = livetime - (lastMuonVetoTime*(1e-6));
 
+				//if livetime is less than 12 hours 
+				if(livetime*(2.778e-7) < 12) goto endloop;
+
+				OCSTime += lastOCSTime*(1e-6);
+				muonVetoTime += lastMuonVetoTime*(1e-6);
+	
 				sumWeightedTimestamp += lastRunTime * ((lastRunTime/2.0)+lastTimestamp);
 				sumRunTime += lastRunTime;
 
@@ -177,6 +192,8 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 
 				tstamp = sumWeightedTimestamp/sumRunTime;
 				vTimestamp.push_back(tstamp);	
+	
+				numClusts += lastNumClusts;
 
 				IDX = i+1;
 			}
@@ -185,52 +202,63 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 			//Fill histograms
 
 			seg = rnpo->d_seg;
+			double rnpo_p_E = rnpo->p_E;	
+			double rnpo_d_E = rnpo->d_E;
+			double rnpo_f_E = rnpo->f_E;
 			exclude = find(begin(ExcludeCellArr), end(ExcludeCellArr), seg) != end(ExcludeCellArr);
 			if(exclude) continue;
 
-			if(rnpo->d_PSD < delayLowPSDCut || rnpo->d_E < delayLowEnCut) continue;	
+			if(rnpo->d_PSD < delayLowPSDCut || rnpo_d_E < delayLowEnCut) continue;	
 			if(rnpo->d_z < zLow || rnpo->d_z > zHigh) continue;
 
-			if(rnpo->p_seg > -1 && rnpo->p_PSD>promptLowPSDCut && rnpo->p_E>promptLowEnCut && rnpo->p_z>zLow && rnpo->p_z<zHigh){	
+			if(rnpo->p_seg > -1 && rnpo->p_PSD>promptLowPSDCut && rnpo_p_E>promptLowEnCut && rnpo->p_z>zLow && rnpo->p_z<zHigh){	
 				dt = (rnpo->d_t - rnpo->p_t)*(1e-6);	//convert ns to ms	
 				dz = rnpo->d_z - rnpo->p_z;
 
 				hSelectDt->Fill(dt);
 				hSelectPromptPSD->Fill(rnpo->p_PSD);
 				hSelectDelayPSD->Fill(rnpo->d_PSD);
-				hSelectPromptEn->Fill(rnpo->p_E);
-				hSelectDelayEn->Fill(rnpo->d_E);
+				hSelectPromptEn->Fill(rnpo_p_E);
+				hSelectDelayEn->Fill(rnpo_d_E);
 				hSelectPromptTotEn->Fill(rnpo->p_Etot);	
 				hSelectPromptPos->Fill(rnpo->p_z);
 				hSelectDelayPos->Fill(rnpo->d_z);
 				hSelectDz->Fill(dz);
 
-				hSelectPSDvsEn->Fill(rnpo->p_E,rnpo->p_PSD);
-				hSelectPSDvsEn->Fill(rnpo->d_E,rnpo->d_PSD);
-				hSelectDelayEnvsPromptEn->Fill(rnpo->p_E,rnpo->d_E);		
+				hSelectPSDvsEn->Fill(rnpo_p_E,rnpo->p_PSD);
+				hSelectPSDvsEn->Fill(rnpo_d_E,rnpo->d_PSD);
+				hSelectDelayEnvsPromptEn->Fill(rnpo_p_E,rnpo_d_E);		
 			}
-			if(rnpo->f_seg > -1 && rnpo->f_PSD>promptLowPSDCut && rnpo->f_E>promptLowEnCut && rnpo->f_z>zLow && rnpo->f_z<zHigh){	
+			if(rnpo->f_seg > -1 && rnpo->f_PSD>promptLowPSDCut && rnpo_f_E>promptLowEnCut && rnpo->f_z>zLow && rnpo->f_z<zHigh){	
 				dt = (rnpo->f_t - rnpo->d_t)*(1e-6) - TIMEOFFSET;	
 				dz = rnpo->d_z - rnpo->f_z;
 
 				hBGDt->Fill(dt);
 				hBGPromptPSD->Fill(rnpo->f_PSD);
 				hBGDelayPSD->Fill(rnpo->d_PSD);
-				hBGPromptEn->Fill(rnpo->f_E);
-				hBGDelayEn->Fill(rnpo->d_E);
+				hBGPromptEn->Fill(rnpo_f_E);
+				hBGDelayEn->Fill(rnpo_d_E);
 				hBGPromptTotEn->Fill(rnpo->f_Etot);	
 				hBGPromptPos->Fill(rnpo->f_z);
 				hBGDelayPos->Fill(rnpo->d_z);
 				hBGDz->Fill(dz);
 
-				hBGPSDvsEn->Fill(rnpo->f_E,rnpo->f_PSD);
-				hBGPSDvsEn->Fill(rnpo->d_E,rnpo->d_PSD);
-				hBGDelayEnvsPromptEn->Fill(rnpo->f_E,rnpo->d_E);		
+				hBGPSDvsEn->Fill(rnpo_f_E,rnpo->f_PSD);
+				hBGPSDvsEn->Fill(rnpo_d_E,rnpo->d_PSD);
+				hBGDelayEnvsPromptEn->Fill(rnpo_f_E,rnpo_d_E);		
 			}
 
 		}	//end for loop over events
 
+		double pileupVetoTime = numClusts*pileupVetoT;	//[ms]
+		double pileupVetoCorr = (2.0*pileupVetoTime)/(livetime);
+
 		printf("Time bin: %i  |  Livetime: %f hrs \n",numTimeBin,livetime*(2.778e-7));
+		printf("OCS time: %f ms   |   Muon time: %f ms \n",OCSTime,muonVetoTime);
+
+		livetime = livetime*(1-pileupVetoCorr);
+		printf("Pileup veto correction: %f \n",pileupVetoCorr);
+		printf("Corrected Livetime: %f hours \n",livetime*(2.778e-7));
 
 		//---------------------------------------------------------------------------------
 		//Subtract histograms
@@ -401,6 +429,7 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 		numTimeBin++;
 	}	//end while loop IDX < numEntries
 
+	endloop:
 	histFile->Write();
 	histFile->Close();
 

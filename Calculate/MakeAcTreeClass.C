@@ -13,7 +13,8 @@ int MakeAcTreeClass(){
 	clock_t tStart = clock();	
 	
 	ifstream file;
-	file.open("Neutrino18_GoodRuns_RxStatus.txt", ifstream::in);
+	file.open("/home/dberish/AD_Ac227Analysis/PROSPECTAD_Ac227/Calculate/Neutrino18_GoodRuns_RxStatus.txt", ifstream::in);
+	//file.open("/home/dberish/AD_Ac227Analysis/PROSPECTAD_Ac227/Calculate/NuFact18_AllRuns_RxStatus.txt", ifstream::in);
 	
 	if(!(file.is_open() && file.good())){
 		printf("Good runs file not found. Exiting. \n");
@@ -37,8 +38,8 @@ int MakeAcTreeClass(){
 		stringstream s(line);
 		s>>filename>>RxFlag;
 
-		if(RxFlag==0 || RxFlag==1){
-		TString str = Form("%s/%s/AD1_Extra_Phys.root",gSystem->Getenv("P2X_DATANALYZED"),filename.data());
+		TString str = Form("%s/%s/ADAnalyzer.root",gSystem->Getenv("P2X_DATANALYZED"),filename.data());
+		//TString str = Form("%s/%s/AD1_Extra_Phys.root",gSystem->Getenv("P2X_DATANALYZED"),filename.data());
 
 		if(TFile *f = TFile::Open((const char*)str.Data())){
 		if(RxFlag==0){ 
@@ -50,14 +51,11 @@ int MakeAcTreeClass(){
 			RxOnTime += ((TVectorD*)f->Get("runtime"))->Norm1();
 		}
 		f->Close();
-
 		}
 
 		chain->Add(str.Data());
 
-
 		if(i%100==0) printf("At file %i: %s \n",i,(const char*)str);
-		}
 
 		file.peek();
 

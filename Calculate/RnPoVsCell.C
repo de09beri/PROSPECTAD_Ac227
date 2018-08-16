@@ -15,6 +15,7 @@
 #include "TChainElement.h"
 #include "TMath.h"
 #include "TLatex.h"
+#include "TVectorD.h"
 
 #include "Header.C"
 
@@ -90,9 +91,6 @@ void RnPoVsCell(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 
 	}	//end for loop creating histograms
 
-	TH1F *hCell136_tstampLeft = new TH1F("hCell136_tstampLeft","Cell 136 -200<z<100;Time;Counts",400,timelow,timehigh);
-	TH1F *hCell136_tstampRight = new TH1F("hCell136_tstampRight","Cell 136 100<z<400;Time;Counts",400,timelow,timehigh);
-
 	//---------------------------------------------------------------------------------
 	//Initialize histograms for all cells
 	
@@ -166,35 +164,44 @@ void RnPoVsCell(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 	double muonVetoTime = 0.0;
 	double lastMuonVetoTime = 0.0;
 
+	double lastNumClusts = 0.0, numClusts = 0.0;
+	double lastRuntime = 0.0, totRuntime = 0.0;
+
 	for(Long64_t i=0;i<numEntries;i++){
-		if(i%1000000==0) printf("Event: %lld \n",i);
+		if(i%1000000==0) printf("Event: %lld  NumClusts: %f \n",i,numClusts);
 		rnpo->GetEntry(i);
+
+		if(rnpo->d_t*(1e-6) > ((double)((TVectorD*)rnpo->fChain->GetCurrentFile()->Get("runtime"))->Norm1()*1000.0 - (TIMEWINDOW+TIMEOFFSET))) continue;
 
 		if(rnpo->d_t < lastTime){ 
 			livetime += lastTime*(1e-6);		//livetime in ms	
 			OCSTime += lastOCSTime*(1e-6);
-//			muonVetoTime += lastMuonVetoTime*(1e-6);
+			muonVetoTime += lastMuonVetoTime*(1e-6);
+			totRuntime += lastRuntime;
+			numClusts += lastNumClusts;
 		}
 		lastTime = rnpo->d_t;
 		lastOCSTime = rnpo->OCSVeto_t;
-//		lastMuonVetoTime = rnpo->muonVeto_t;
+		lastMuonVetoTime = rnpo->muonVeto_t;
+		lastNumClusts = rnpo->numClust;
+		lastRuntime = ((TVectorD*)rnpo->fChain->GetCurrentFile()->Get("runtime"))->Norm1();	//[s]	
 
 		seg = rnpo->d_seg;
+		double rnpo_p_E = rnpo->p_E;	
+		double rnpo_d_E = rnpo->d_E;
+		double rnpo_f_E = rnpo->f_E;
 
-		if(rnpo->d_PSD < delayLowPSDCut || rnpo->d_E < delayLowEnCut) continue;
+		if(rnpo->d_PSD < delayLowPSDCut || rnpo_d_E < delayLowEnCut) continue;
 		if(rnpo->d_z < zLow || rnpo->d_z > zHigh) continue;
 
-		if((rnpo->p_PSD>promptLowPSDCut && rnpo->p_E>promptLowEnCut && (rnpo->d_t - rnpo->p_t)*(1e-6)>0.0) || (rnpo->f_PSD>promptLowPSDCut && rnpo->f_E>promptLowEnCut && ((rnpo->f_t - rnpo->d_t)*(1e-6) - TIMEOFFSET) > 0.0)) hCell_tstamp[seg]->Fill(rnpo->tstamp);
-
-		if(rnpo->d_seg==136 && ( (rnpo->d_z>-200 && rnpo->d_z<100) || (rnpo->p_PSD>promptLowPSDCut && rnpo->p_E>promptLowEnCut && (rnpo->d_t - rnpo->p_t)*(1e-6)>0.0 && rnpo->p_z>-200 && rnpo->p_z<100) || (rnpo->f_PSD>promptLowPSDCut && rnpo->f_E>promptLowEnCut && ((rnpo->f_t - rnpo->d_t)*(1e-6) - TIMEOFFSET) > 0.0  && rnpo->f_z>-200 && rnpo->f_z<100)  )) hCell136_tstampLeft->Fill(rnpo->tstamp);
-
-		if(rnpo->d_seg==136 && ( (rnpo->d_z>100 && rnpo->d_z<400) || (rnpo->p_PSD>promptLowPSDCut && rnpo->p_E>promptLowEnCut && (rnpo->d_t - rnpo->p_t)*(1e-6)>0.0 && rnpo->p_z>100 && rnpo->p_z<400) || (rnpo->f_PSD>promptLowPSDCut && rnpo->f_E>promptLowEnCut && ((rnpo->f_t - rnpo->d_t)*(1e-6) - TIMEOFFSET) > 0.0  && rnpo->f_z>100 && rnpo->f_z<400)  )) hCell136_tstampRight->Fill(rnpo->tstamp);
+		if((rnpo->p_PSD>promptLowPSDCut && rnpo_p_E>promptLowEnCut) || (rnpo->f_PSD>promptLowPSDCut && rnpo_f_E>promptLowEnCut)) hCell_tstamp[seg]->Fill(rnpo->tstamp);
 
 		exclude = find(begin(ExcludeCellArr), end(ExcludeCellArr), seg) != end(ExcludeCellArr);
 		if(exclude) continue;
 
+
 		//if prompt-delay pair
-		if(rnpo->p_seg > -1 && rnpo->p_PSD>promptLowPSDCut && rnpo->p_E>promptLowEnCut && rnpo->p_z>zLow && rnpo->p_z<zHigh){
+		if(rnpo->p_seg > -1 && rnpo->p_PSD>promptLowPSDCut && rnpo_p_E>promptLowEnCut && rnpo->p_z>zLow && rnpo->p_z<zHigh){
 			hSelectSeg->Fill(rnpo->d_seg);		
 			
 			dt = (rnpo->d_t - rnpo->p_t)*(1e-6);	//convert ns to ms	
@@ -204,24 +211,24 @@ void RnPoVsCell(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 			hSelectDt[seg]->Fill(dt);
 			hSelectPromptPSD[seg]->Fill(rnpo->p_PSD);
 			hSelectDelayPSD[seg]->Fill(rnpo->d_PSD);
-			hSelectPromptEn[seg]->Fill(rnpo->p_E);
-			hSelectDelayEn[seg]->Fill(rnpo->d_E);
+			hSelectPromptEn[seg]->Fill(rnpo_p_E);
+			hSelectDelayEn[seg]->Fill(rnpo_d_E);
 			hSelectPromptTotEn[seg]->Fill(rnpo->p_Etot);	
 			hSelectPromptPos[seg]->Fill(rnpo->p_z);
 			hSelectDelayPos[seg]->Fill(rnpo->d_z);
 			hSelectDz[seg]->Fill(dz);
 
-			hSelectPSDvsEn[seg]->Fill(rnpo->p_E,rnpo->p_PSD);
-			hSelectPSDvsEn[seg]->Fill(rnpo->d_E,rnpo->d_PSD);
+			hSelectPSDvsEn[seg]->Fill(rnpo_p_E,rnpo->p_PSD);
+			hSelectPSDvsEn[seg]->Fill(rnpo_d_E,rnpo->d_PSD);
 			hSelectPSDvsPos[seg]->Fill(rnpo->p_z,rnpo->p_PSD);
 			hSelectPSDvsPos[seg]->Fill(rnpo->d_z,rnpo->d_PSD);
-			hSelectEnvsPos[seg]->Fill(rnpo->p_z,rnpo->p_E);
-			hSelectEnvsPos[seg]->Fill(rnpo->d_z,rnpo->d_E);
-			hSelectDelayEnvsPromptEn[seg]->Fill(rnpo->p_E,rnpo->d_E);		
+			hSelectEnvsPos[seg]->Fill(rnpo->p_z,rnpo_p_E);
+			hSelectEnvsPos[seg]->Fill(rnpo->d_z,rnpo_d_E);
+			hSelectDelayEnvsPromptEn[seg]->Fill(rnpo_p_E,rnpo_d_E);		
 		}
 
 		//if prompt-delay BG pair
-		if(rnpo->f_seg > -1 && rnpo->f_PSD>promptLowPSDCut && rnpo->f_E>promptLowEnCut && rnpo->f_z>zLow && rnpo->f_z<zHigh){
+		if(rnpo->f_seg > -1 && rnpo->f_PSD>promptLowPSDCut && rnpo_f_E>promptLowEnCut && rnpo->f_z>zLow && rnpo->f_z<zHigh){
 			hBGSeg->Fill(rnpo->d_seg);
 		
 			dt = (rnpo->f_t - rnpo->d_t)*(1e-6) - TIMEOFFSET;
@@ -230,34 +237,43 @@ void RnPoVsCell(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 			hBGDt[seg]->Fill(dt);
 			hBGPromptPSD[seg]->Fill(rnpo->f_PSD);
 			hBGDelayPSD[seg]->Fill(rnpo->d_PSD);
-			hBGPromptEn[seg]->Fill(rnpo->f_E);
-			hBGDelayEn[seg]->Fill(rnpo->d_E);
+			hBGPromptEn[seg]->Fill(rnpo_f_E);
+			hBGDelayEn[seg]->Fill(rnpo_d_E);
 			hBGPromptTotEn[seg]->Fill(rnpo->f_Etot);
 			hBGPromptPos[seg]->Fill(rnpo->f_z);
 			hBGDelayPos[seg]->Fill(rnpo->d_z);
 			hBGDz[seg]->Fill(dz);
 
-			hBGPSDvsEn[seg]->Fill(rnpo->f_E,rnpo->f_PSD);
-			hBGPSDvsEn[seg]->Fill(rnpo->d_E,rnpo->d_PSD);
+			hBGPSDvsEn[seg]->Fill(rnpo_f_E,rnpo->f_PSD);
+			hBGPSDvsEn[seg]->Fill(rnpo_d_E,rnpo->d_PSD);
 			hBGPSDvsPos[seg]->Fill(rnpo->f_z,rnpo->f_PSD);
 			hBGPSDvsPos[seg]->Fill(rnpo->d_z,rnpo->d_PSD);
-			hBGEnvsPos[seg]->Fill(rnpo->f_z,rnpo->f_E);
-			hBGEnvsPos[seg]->Fill(rnpo->d_z,rnpo->d_E);
-			hBGDelayEnvsPromptEn[seg]->Fill(rnpo->f_E,rnpo->d_E);	
+			hBGEnvsPos[seg]->Fill(rnpo->f_z,rnpo_f_E);
+			hBGEnvsPos[seg]->Fill(rnpo->d_z,rnpo_d_E);
+			hBGDelayEnvsPromptEn[seg]->Fill(rnpo_f_E,rnpo_d_E);	
 		}
 	}	//end for loop over TChain
 
 
 	livetime += lastTime*(1e-6);	//add time from last tree
 	OCSTime += lastOCSTime*(1e-6);
-//	muonVetoTime += lastMuonVetoTime*(1e-6);
+	muonVetoTime += lastMuonVetoTime*(1e-6);
+	totRuntime += lastRuntime;
+	numClusts += lastNumClusts;
+
+	double pileupVetoTime = numClusts*pileupVetoT;	//[ms]
+	double pileupVetoCorr = (2.0*pileupVetoTime)/livetime;
+
+	printf("Total runtime: %f hours \n",totRuntime/(60.0*60.0));
 	printf("Livetime: %f hours \n",livetime*(2.778e-7));
 
-//	printf("OCS time: %f ms \n",OCSTime);
-//	printf("Muon veto time: %f ms \n",muonVetoTime);
+	printf("OCS time: %f ms \n",OCSTime);
+	printf("Muon veto time: %f ms \n",muonVetoTime);
 
-//	livetime = livetime - OCSTime - muonVetoTime;
-	livetime = livetime - OCSTime;
+	printf("Pileup veto correction: %f \n",pileupVetoCorr);
+
+	livetime = livetime - OCSTime - muonVetoTime;
+	livetime = livetime * (1-pileupVetoCorr);
 	printf("Corrected Livetime: %f hours \n",livetime*(2.778e-7));
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
