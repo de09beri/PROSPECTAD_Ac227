@@ -122,6 +122,7 @@ cout<<"\n DZ SIGMA"<<endl;
 	grRate->Draw("AP");
 	cRate->SaveAs(Form("%s/RatePerCell.pdf",gSystem->Getenv("AD_AC227_PLOTS")));
 	cRate->SaveAs(Form("%s/RatePerCell.png",gSystem->Getenv("AD_AC227_PLOTS")));
+	cRate->SaveAs(Form("%s/RatePerCell.C",gSystem->Getenv("AD_AC227_PLOTS")));
 
 	gStyle->SetPaintTextFormat("2.2f");
 	TCanvas *cRate2D = new TCanvas("cRate2D","Rate per cell",1);
@@ -146,6 +147,7 @@ cout<<"\n DZ SIGMA"<<endl;
 	grRelRate->Draw("AP");
 	cRelRate->SaveAs(Form("%s/RelativeRatePerCell.pdf",gSystem->Getenv("AD_AC227_PLOTS")));
 	cRelRate->SaveAs(Form("%s/RelativeRatePerCell.png",gSystem->Getenv("AD_AC227_PLOTS")));
+	cRelRate->SaveAs(Form("%s/RelativeRatePerCell.C",gSystem->Getenv("AD_AC227_PLOTS")));
 
 	TCanvas *cRelPoPSDMean = new TCanvas("cRelPoPSDMean","Relative Po PSD Mean",1000,400);
 	grRelPoPSDMean->GetXaxis()->SetTitle(xLabel);

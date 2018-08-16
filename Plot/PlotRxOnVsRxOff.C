@@ -132,8 +132,8 @@ int PlotRxOnVsRxOff(){
 
 	//double RxOnTime = 792.784039;	//hrs
 	//double RxOffTime = 655.099961;	//hrs
-	double RxOnTime = 868.994889;	//hrs
-	double RxOffTime = 602.350434;	//hrs
+	double RxOnTime = 1105.090506;	//hrs
+	double RxOffTime = 888.303880;	//hrs
 
 	//-------------------------------------------------------------------------------------------------------
 	hRnEn_On->Scale(1/RxOnTime);

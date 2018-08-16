@@ -110,6 +110,7 @@ cout<<"\n DZ SIGMA"<<endl;
 	grRate->Draw("AP");
 	cRate->SaveAs(Form("%s/RateVsTime.pdf",gSystem->Getenv("AD_AC227_PLOTS")));
 	cRate->SaveAs(Form("%s/RateVsTime.png",gSystem->Getenv("AD_AC227_PLOTS")));
+	cRate->SaveAs(Form("%s/RateVsTime.C",gSystem->Getenv("AD_AC227_PLOTS")));
 
 	TCanvas *cRelRate = new TCanvas("cRelRate","Relative rate vs time",1000,400);
 	grRelRate->GetXaxis()->SetTitle(xLabel);
@@ -122,13 +123,29 @@ cout<<"\n DZ SIGMA"<<endl;
 
 
 	int numPt = grRate->GetN();
-	double grxStart, grxEnd, gry;
-	grRate->GetPoint(0,grxStart,gry);
-	grRate->GetPoint(numPt-1,grxEnd,gry);
+	double grxStart, grxEnd, gryStart, gryEnd;
+	grRate->GetPoint(3,grxStart,gryStart);
+	grRate->GetPoint(numPt-1,grxEnd,gryEnd);
 
-	//TF1 *fAcExp = new TF1("fAcExp","[0]*exp(-((x-1514782800)*log(2)/[1]))",grxStart,grxEnd);
-	TF1 *fAcExp = new TF1("fAcExp","[0]*exp(-(x*log(2)/[1]))",grxStart,grxEnd);
-	fAcExp->SetParameters(0.40,684300000);
+	TF1 *fAcExp = new TF1("fAcExp","[0]*exp(-((x-[2])*log(2)/([1]*365.0*24.0*60.0*60.0)))",grxStart,grxEnd);
+	fAcExp->SetParameters(2,21.772);
+//	fAcExp->FixParameter(0,grRate->GetFunction("pol0")->GetParameter(0));
+	fAcExp->FixParameter(2,grxStart);
+
+	TF1 *fAcExpFixed = new TF1("fAcExp","[0]*exp(-((x-[2])*log(2)/([1]*365.0*24.0*60.0*60.0)))",grxStart,grxEnd);
+	fAcExpFixed->FixParameter(1,21.772);
+//	fAcExpFixed->FixParameter(0,grRate->GetFunction("pol0")->GetParameter(0));
+	fAcExpFixed->FixParameter(2,grxStart);
+
+	TLine *lOff_0 = new TLine(1521194400,0.361,1521194400,0.385);	// RxOff 3/16/18 6AM EST
+	TLine *lOn_0  = new TLine(1525168800,0.361,1525168800,0.385);	// RxOn  5/01/18 6AM EST
+	TLine *lOff_1 = new TLine(1527242400,0.361,1527242400,0.385);	// RxOff 5/25/18 6AM EST
+	TLine *lOn_1  = new TLine(1528797600,0.361,1528797600,0.385);	// RxOn  6/12/18 6AM EST
+
+	lOff_0->SetLineColor(kBlack);
+	lOn_0->SetLineColor(kBlack);
+	lOff_1->SetLineColor(kBlack);
+	lOn_1->SetLineColor(kBlack);
 
 	TCanvas *cRateFit = new TCanvas("cRate","Rate vs time Fit",1000,400);
 	grRate->GetXaxis()->SetTitle(xLabel);
@@ -136,14 +153,29 @@ cout<<"\n DZ SIGMA"<<endl;
 	grRate->GetXaxis()->SetTimeDisplay(1);
 	grRate->GetXaxis()->SetTimeFormat("%m/%d");
 	grRate->Draw("AP");
-	grRate->Fit(fAcExp,"R0");
+	grRate->Fit(fAcExp,"0R");
+	grRate->Fit(fAcExpFixed,"0R");
 	fAcExp->Draw("same");
+	fAcExpFixed->SetLineColor(8);
+	fAcExpFixed->Draw("same");
+	//lOff_0->Draw("same");
+	//lOn_0->Draw("same");
+	//lOff_1->Draw("same");
+	//lOn_1->Draw("same");
 	TPaveText *pv = new TPaveText(0.4,0.8,0.6,0.98,"NDC");
-	pv->AddText(Form("#Chi^{2}/NDF  %f/%d",fAcExp->GetChisquare(),fAcExp->GetNDF()));
+	pv->SetShadowColor(kRed);
+	pv->AddText(Form("#Chi^{2}/NDF  %.1f/%d",fAcExp->GetChisquare(),fAcExp->GetNDF()));
 	pv->AddText(Form("Prob  %f",fAcExp->GetProb()));
-	pv->AddText(Form("R_{0}   %.2f #pm %.2f Hz",fAcExp->GetParameter(0),fAcExp->GetParError(0)));
-	pv->AddText(Form("t_{1/2}   %.2f #pm %.2f yrs",fAcExp->GetParameter(1)/(60.0*60.0*24.0*365.0),fAcExp->GetParError(1)/(60.0*60.0*24.0*365.0)));
+	pv->AddText(Form("R_{0}   %.2f #pm %.2f mHz",fAcExp->GetParameter(0)*1000.0,fAcExp->GetParError(0)*1000.0));
+	pv->AddText(Form("t_{1/2}   %.2f #pm %.2f yrs",fAcExp->GetParameter(1),fAcExp->GetParError(1)));
 	pv->Draw();
+	TPaveText *pvFix = new TPaveText(0.65,0.8,0.85,0.98,"NDC");
+	pvFix->SetShadowColor(8);
+	pvFix->AddText(Form("#Chi^{2}/NDF  %.1f/%d",fAcExpFixed->GetChisquare(),fAcExpFixed->GetNDF()));
+	pvFix->AddText(Form("Prob  %f",fAcExpFixed->GetProb()));
+	pvFix->AddText(Form("R_{0}   %.2f #pm %.2f mHz",fAcExpFixed->GetParameter(0)*1000.0,fAcExpFixed->GetParError(0)*1000.0));
+	pvFix->AddText(Form("t_{1/2}   %.2f #pm %.2f yrs",fAcExpFixed->GetParameter(1),fAcExpFixed->GetParError(1)));
+	pvFix->Draw();
 	cRateFit->SaveAs(Form("%s/RateVsTime_Fit.pdf",gSystem->Getenv("AD_AC227_PLOTS")));
 	cRateFit->SaveAs(Form("%s/RateVsTime_Fit.png",gSystem->Getenv("AD_AC227_PLOTS")));
 
