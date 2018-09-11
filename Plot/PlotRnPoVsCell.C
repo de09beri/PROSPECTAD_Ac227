@@ -144,6 +144,7 @@ cout<<"\n DZ SIGMA"<<endl;
 	TCanvas *cRelRate = new TCanvas("cRelRate","Relative rate per cell",1000,400);
 	grRelRate->GetXaxis()->SetTitle(xLabel);
 	grRelRate->GetYaxis()->SetTitle("R_{RnPo}/#LTR_{RnPo}#GT");  
+	grRelRate->GetYaxis()->SetRangeUser(0.95,1.04);
 	grRelRate->Draw("AP");
 	cRelRate->SaveAs(Form("%s/RelativeRatePerCell.pdf",gSystem->Getenv("AD_AC227_PLOTS")));
 	cRelRate->SaveAs(Form("%s/RelativeRatePerCell.png",gSystem->Getenv("AD_AC227_PLOTS")));

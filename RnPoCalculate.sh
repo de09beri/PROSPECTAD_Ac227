@@ -1,19 +1,22 @@
 #!/bin/bash
 
-# ./RnPoCalculate.sh $1 $2 $3 $4
+# ./RnPoCalculate.sh $1 $2 $3 $4 $5
 # $1: Run MakeClass
 # $2: Run RnPoVsCell.C
 # $3: Run RnPoVsTime.C
-# $4: Run RnPoColVsTime.C and RnPoRowVsTime.C
+# $4: Run RnPoCellVsTime.C
+# $5: Run RnPoColVsTime.C and RnPoRowVsTime.C
 
 
 p_lowPSD=0.19
 d_lowPSD=0.19
 p_lowE=0.57
 d_lowE=0.66
+
 zLow=-1000
 zHigh=1000
 timeBin=23.5
+timeBinCell=35.5
 dtFit=1
 
 #==============================================
@@ -23,6 +26,7 @@ echo ========== Making TAc Class ==========
 if [ $1 -eq 1 ]
 then
 
+#.L Calculate/MakeAcTreeClass.C+
 root -l -b <<EOF
 .L Calculate/MakeAcTreeClass.C+
 MakeAcTreeClass()
@@ -64,8 +68,24 @@ fi
 
 #==============================================
 # Run RnPoColVsTime and RnPoRunVsTime
+echo ========= Running RnPoCellVsTime =========
 
 if [ $4 -eq 1 ]
+then
+
+root -l -b <<EOF 
+.L Calculate/RnPoCellVsTime.C+
+RnPoCellVsTime($p_lowPSD,$d_lowPSD,$p_lowE,$d_lowE,$zLow,$zHigh,$timeBinCell,$dtFit)
+.q
+EOF
+
+fi
+
+
+#==============================================
+# Run RnPoColVsTime and RnPoRunVsTime
+
+if [ $5 -eq 1 ]
 then
 
 echo ======= Running RnPoColVsTime =======

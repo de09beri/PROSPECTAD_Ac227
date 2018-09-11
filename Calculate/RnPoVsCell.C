@@ -269,10 +269,10 @@ void RnPoVsCell(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 
 	printf("OCS time: %f ms \n",OCSTime);
 	printf("Muon veto time: %f ms \n",muonVetoTime);
-
+	printf("Pileup veto time: %f ms \n",pileupVetoTime);
 	printf("Pileup veto correction: %f \n",pileupVetoCorr);
 
-	livetime = livetime - OCSTime - muonVetoTime;
+	livetime = livetime - OCSTime - (1.0*muonVetoTime);
 	livetime = livetime * (1-pileupVetoCorr);
 	printf("Corrected Livetime: %f hours \n",livetime*(2.778e-7));
 

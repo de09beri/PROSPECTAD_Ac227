@@ -144,8 +144,6 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 			//Calculate livetime and weighted timestamp
 			if(rnpo->d_t < lastTime){ 
 				livetime += lastTime*(1e-6);		//livetime in ms	
-				livetime = livetime - (lastOCSTime*(1e-6));
-				livetime = livetime - (lastMuonVetoTime*(1e-6));
 
 				OCSTime += lastOCSTime*(1e-6);
 				muonVetoTime += lastMuonVetoTime*(1e-6);
@@ -157,7 +155,6 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 			}
 
 			if(livetime>TIMEBREAK){
-				vLivetime.push_back(livetime);
 
 				tstamp = sumWeightedTimestamp/sumRunTime;
 				vTimestamp.push_back(tstamp);	
@@ -176,8 +173,6 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 			//if we are at the last entry	
 			if(i == (numEntries-1)){ 
 				livetime += lastTime*(1e-6);
-				livetime = livetime - (lastOCSTime*(1e-6));
-				livetime = livetime - (lastMuonVetoTime*(1e-6));
 
 				//if livetime is less than 12 hours 
 				if(livetime*(2.778e-7) < 12) goto endloop;
@@ -187,8 +182,6 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 	
 				sumWeightedTimestamp += lastRunTime * ((lastRunTime/2.0)+lastTimestamp);
 				sumRunTime += lastRunTime;
-
-				vLivetime.push_back(livetime);
 
 				tstamp = sumWeightedTimestamp/sumRunTime;
 				vTimestamp.push_back(tstamp);	
@@ -255,9 +248,13 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 
 		printf("Time bin: %i  |  Livetime: %f hrs \n",numTimeBin,livetime*(2.778e-7));
 		printf("OCS time: %f ms   |   Muon time: %f ms \n",OCSTime,muonVetoTime);
-
-		livetime = livetime*(1-pileupVetoCorr);
 		printf("Pileup veto correction: %f \n",pileupVetoCorr);
+
+		livetime = livetime - OCSTime;
+		livetime = livetime - 2.0*muonVetoTime;
+		livetime = livetime*(1-pileupVetoCorr);
+		vLivetime.push_back(livetime);
+
 		printf("Corrected Livetime: %f hours \n",livetime*(2.778e-7));
 
 		//---------------------------------------------------------------------------------
