@@ -175,22 +175,27 @@ void RnPoVsCell(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 
 		if(rnpo->d_t < lastTime){ 
 			livetime += lastTime*(1e-6);		//livetime in ms	
-			OCSTime += lastOCSTime*(1e-6);
+//			OCSTime += lastOCSTime*(1e-6);
 			muonVetoTime += lastMuonVetoTime*(1e-6);
 			totRuntime += lastRuntime;
 			numClusts += lastNumClusts;
 		}
 		lastTime = rnpo->d_t;
-		lastOCSTime = rnpo->OCSVeto_t;
+//		lastOCSTime = rnpo->OCSVeto_t;
 		lastMuonVetoTime = rnpo->muonVeto_t;
 		lastNumClusts = rnpo->numClust;
 		lastRuntime = ((TVectorD*)rnpo->fChain->GetCurrentFile()->Get("runtime"))->Norm1();	//[s]	
 
 		seg = rnpo->d_seg;
+
+		double rnpo_p_E = rnpo->p_ESmear;	
+		double rnpo_d_E = rnpo->d_ESmear;
+		double rnpo_f_E = rnpo->f_ESmear;
+/*
 		double rnpo_p_E = rnpo->p_E;	
 		double rnpo_d_E = rnpo->d_E;
 		double rnpo_f_E = rnpo->f_E;
-
+*/
 		if(rnpo->d_PSD < delayLowPSDCut || rnpo_d_E < delayLowEnCut) continue;
 		if(rnpo->d_z < zLow || rnpo->d_z > zHigh) continue;
 
@@ -256,7 +261,7 @@ void RnPoVsCell(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 
 
 	livetime += lastTime*(1e-6);	//add time from last tree
-	OCSTime += lastOCSTime*(1e-6);
+//	OCSTime += lastOCSTime*(1e-6);
 	muonVetoTime += lastMuonVetoTime*(1e-6);
 	totRuntime += lastRuntime;
 	numClusts += lastNumClusts;
@@ -267,12 +272,12 @@ void RnPoVsCell(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 	printf("Total runtime: %f hours \n",totRuntime/(60.0*60.0));
 	printf("Livetime: %f hours \n",livetime*(2.778e-7));
 
-	printf("OCS time: %f ms \n",OCSTime);
+//	printf("OCS time: %f ms \n",OCSTime);
 	printf("Muon veto time: %f ms \n",muonVetoTime);
 	printf("Pileup veto time: %f ms \n",pileupVetoTime);
 	printf("Pileup veto correction: %f \n",pileupVetoCorr);
 
-	livetime = livetime - OCSTime - (1.0*muonVetoTime);
+	livetime = livetime - (2.0*muonVetoTime);
 	livetime = livetime * (1-pileupVetoCorr);
 	printf("Corrected Livetime: %f hours \n",livetime*(2.778e-7));
 

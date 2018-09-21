@@ -13,7 +13,8 @@ int MakeAcTreeClass(int RxStatus){
 	clock_t tStart = clock();	
 	
 	ifstream file;
-	file.open("/home/dberish/AD_Ac227Analysis/PROSPECTAD_Ac227/Calculate/NuFact18_AllRuns_RxStatus.txt", ifstream::in);
+	//file.open("/g/g20/berish1/AD_Ac227Analysis/PROSPECTAD_Ac227/Calculate/NuFact18_GoodRuns_RxStatus.txt", ifstream::in);
+	file.open("/g/g20/berish1/AD_Ac227Analysis/PROSPECTAD_Ac227/Calculate/2018A_AllRuns_RxStatus.txt", ifstream::in);
 	
 	if(!(file.is_open() && file.good())){
 		printf("Good runs file not found. Exiting. \n");
@@ -38,7 +39,7 @@ int MakeAcTreeClass(int RxStatus){
 		s>>filename>>RxFlag;
 
 		if(RxFlag==RxStatus){
-		TString str = Form("%s/%s/AD1_Extra_Phys.root",gSystem->Getenv("P2X_DATANALYZED"),filename.data());
+		TString str = Form("%s/%s/AD1_Extra_Phys.root",gSystem->Getenv("P2X_ANALYZED"),filename.data());
 
 		if(TFile *f = TFile::Open((const char*)str.Data())){
 		if(RxFlag==0){ 

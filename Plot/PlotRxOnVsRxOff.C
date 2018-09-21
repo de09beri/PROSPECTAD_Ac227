@@ -130,10 +130,11 @@ int PlotRxOnVsRxOff(){
 	TH1F *hRnPoDzSigma_Off = makeHist(grRnPoDzSigma_Off);
 
 
-	//double RxOnTime = 792.784039;	//hrs
-	//double RxOffTime = 655.099961;	//hrs
-	double RxOnTime = 1105.090506;	//hrs
-	double RxOffTime = 888.303880;	//hrs
+//	double RxOnTime = 934.360379;	//hrs
+//	double RxOffTime = 864.126678;	//hrs
+
+	double RxOnTime = 1131.558357;	//hrs
+	double RxOffTime = 1106.824692;	//hrs
 
 	//-------------------------------------------------------------------------------------------------------
 	hRnEn_On->Scale(1/RxOnTime);
@@ -246,7 +247,7 @@ cout<<"Rn"<<endl;
 	leg->AddEntry(hRnEn_Sub,"Rn^{219}");
 	leg->AddEntry(hPoEn_Sub,"Po^{215}");
 	leg->Draw();
-	cRnPoEn->SaveAs(Form("%s/RxOnVsRxOff/RnPoEn.pdf",gSystem->Getenv("AD_AC227_PLOTS")));
+	cRnPoEn->SaveAs(Form("%s/RxOnVsRxOff/RnPoEn.C",gSystem->Getenv("AD_AC227_PLOTS")));
 	cRnPoEn->SaveAs(Form("%s/RxOnVsRxOff/RnPoEn.png",gSystem->Getenv("AD_AC227_PLOTS")));
 	
 cout<<"DZ"<<endl;
@@ -254,7 +255,7 @@ cout<<"DZ"<<endl;
 	cRnPoDz->Divide(1,2);
 	cRnPoDz->cd(1);
 	gPad->SetGrid();
-	hRnPoDz_On->GetYaxis()->SetRangeUser(0,30);
+	hRnPoDz_On->GetYaxis()->SetRangeUser(0,35);
 	hRnPoDz_On->GetYaxis()->SetTitle("Counts/0.25 cm/hr");
 	hRnPoDz_On->SetMarkerColor(p_col);
 	hRnPoDz_On->SetLineColor(p_col);
@@ -277,7 +278,7 @@ cout<<"DZ"<<endl;
 	hRnPoDz_Sub->SetMarkerStyle(2);
 	hRnPoDz_Sub->Draw();
 	hRnPoDz_Sub->Fit("pol0","0");
-	cRnPoDz->SaveAs(Form("%s/RxOnVsRxOff/RnPoDz.pdf",gSystem->Getenv("AD_AC227_PLOTS")));
+	cRnPoDz->SaveAs(Form("%s/RxOnVsRxOff/RnPoDz.C",gSystem->Getenv("AD_AC227_PLOTS")));
 	cRnPoDz->SaveAs(Form("%s/RxOnVsRxOff/RnPoDz.png",gSystem->Getenv("AD_AC227_PLOTS")));
 
 cout<<"RATE"<<endl;	
@@ -285,7 +286,7 @@ cout<<"RATE"<<endl;
 	cRate->Divide(1,2);
 	cRate->cd(1);
 	gPad->SetGrid();
-	hRate_On->GetYaxis()->SetRangeUser(2.8,3.5);
+	hRate_On->GetYaxis()->SetRangeUser(2.8,4.0);
 	hRate_On->GetYaxis()->SetTitle("Rate [mHz]");
 	hRate_On->GetXaxis()->SetTitle("Cell");
 	hRate_On->SetMarkerColor(p_col);
@@ -310,7 +311,7 @@ cout<<"RATE"<<endl;
 	hRate_Sub->SetMarkerStyle(2);
 	hRate_Sub->Fit("pol0","0");
 	hRate_Sub->Draw();
-	cRate->SaveAs(Form("%s/RxOnVsRxOff/Rate.pdf",gSystem->Getenv("AD_AC227_PLOTS")));
+	cRate->SaveAs(Form("%s/RxOnVsRxOff/Rate.C",gSystem->Getenv("AD_AC227_PLOTS")));
 	cRate->SaveAs(Form("%s/RxOnVsRxOff/Rate.png",gSystem->Getenv("AD_AC227_PLOTS")));
 
 cout<<"ENERGY MEAN"<<endl;
@@ -318,7 +319,7 @@ cout<<"ENERGY MEAN"<<endl;
 	cPoEnMean->Divide(1,2);
 	cPoEnMean->cd(1);
 	gPad->SetGrid();
-	hPoEnMean_On->GetYaxis()->SetRangeUser(799,812);
+	hPoEnMean_On->GetYaxis()->SetRangeUser(780,795);
 	hPoEnMean_On->GetYaxis()->SetTitle("E_{#mu Po} [keV]");
 	hPoEnMean_On->GetXaxis()->SetTitle("Cell");
 	hPoEnMean_On->SetMarkerColor(p_col);
@@ -343,7 +344,7 @@ cout<<"ENERGY MEAN"<<endl;
 	hPoEnMean_Sub->SetMarkerStyle(2);
 	hPoEnMean_Sub->Draw();
 	hPoEnMean_Sub->Fit("pol0","0");
-	cPoEnMean->SaveAs(Form("%s/RxOnVsRxOff/PoEnMean.pdf",gSystem->Getenv("AD_AC227_PLOTS")));
+	cPoEnMean->SaveAs(Form("%s/RxOnVsRxOff/PoEnMean.C",gSystem->Getenv("AD_AC227_PLOTS")));
 	cPoEnMean->SaveAs(Form("%s/RxOnVsRxOff/PoEnMean.png",gSystem->Getenv("AD_AC227_PLOTS")));
 
 cout<<"ENERGY SIGMA"<<endl;
@@ -376,7 +377,7 @@ cout<<"ENERGY SIGMA"<<endl;
 	hPoEnSigma_Sub->SetMarkerStyle(2);
 	hPoEnSigma_Sub->Fit("pol0","0");
 	hPoEnSigma_Sub->Draw();
-	cPoEnSigma->SaveAs(Form("%s/RxOnVsRxOff/PoEnSigma.pdf",gSystem->Getenv("AD_AC227_PLOTS")));
+	cPoEnSigma->SaveAs(Form("%s/RxOnVsRxOff/PoEnSigma.C",gSystem->Getenv("AD_AC227_PLOTS")));
 	cPoEnSigma->SaveAs(Form("%s/RxOnVsRxOff/PoEnSigma.png",gSystem->Getenv("AD_AC227_PLOTS")));
 
 cout<<"DZ MEAN"<<endl;
@@ -409,7 +410,7 @@ cout<<"DZ MEAN"<<endl;
 	hRnPoDzMean_Sub->SetMarkerStyle(2);
 	hRnPoDzMean_Sub->Fit("pol0","0");
 	hRnPoDzMean_Sub->Draw();
-	cRnPoDzMean->SaveAs(Form("%s/RxOnVsRxOff/RnPoDzMean.pdf",gSystem->Getenv("AD_AC227_PLOTS")));
+	cRnPoDzMean->SaveAs(Form("%s/RxOnVsRxOff/RnPoDzMean.C",gSystem->Getenv("AD_AC227_PLOTS")));
 	cRnPoDzMean->SaveAs(Form("%s/RxOnVsRxOff/RnPoDzMean.png",gSystem->Getenv("AD_AC227_PLOTS")));
 
 cout<<"DZ SIGMA"<<endl;
@@ -417,7 +418,7 @@ cout<<"DZ SIGMA"<<endl;
 	cRnPoDzSigma->Divide(1,2);
 	cRnPoDzSigma->cd(1);
 	gPad->SetGrid();
-	hRnPoDzSigma_On->GetYaxis()->SetRangeUser(43,67);
+	hRnPoDzSigma_On->GetYaxis()->SetRangeUser(43,70);
 	hRnPoDzSigma_On->GetYaxis()->SetTitle("dz_{#sigma} [mm]");
 	hRnPoDzSigma_On->GetXaxis()->SetTitle("Cell");
 	hRnPoDzSigma_On->SetMarkerColor(p_col);
@@ -442,7 +443,7 @@ cout<<"DZ SIGMA"<<endl;
 	hRnPoDzSigma_Sub->SetMarkerStyle(2);
 	hRnPoDzSigma_Sub->Fit("pol0","0");
 	hRnPoDzSigma_Sub->Draw();
-	cRnPoDzSigma->SaveAs(Form("%s/RxOnVsRxOff/RnPoDzSigma.pdf",gSystem->Getenv("AD_AC227_PLOTS")));
+	cRnPoDzSigma->SaveAs(Form("%s/RxOnVsRxOff/RnPoDzSigma.C",gSystem->Getenv("AD_AC227_PLOTS")));
 	cRnPoDzSigma->SaveAs(Form("%s/RxOnVsRxOff/RnPoDzSigma.png",gSystem->Getenv("AD_AC227_PLOTS")));
 
 

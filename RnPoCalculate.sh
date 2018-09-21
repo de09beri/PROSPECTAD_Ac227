@@ -8,14 +8,14 @@
 # $5: Run RnPoColVsTime.C and RnPoRowVsTime.C
 
 
-p_lowPSD=0.19
-d_lowPSD=0.19
-p_lowE=0.57
-d_lowE=0.66
+p_lowPSD=0.16
+d_lowPSD=0.16
+p_lowE=0.48
+d_lowE=0.65
 
 zLow=-1000
 zHigh=1000
-timeBin=23.5
+timeBin=47.5
 timeBinCell=35.5
 dtFit=1
 

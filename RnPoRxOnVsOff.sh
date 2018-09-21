@@ -1,21 +1,21 @@
 #!/bin/bash
 
-p_lowPSD=0.19
-d_lowPSD=0.19
-p_lowE=0.57
-d_lowE=0.66
+p_lowPSD=0.20
+d_lowPSD=0.20
+p_lowE=0.52
+d_lowE=0.61
 zLow=-1000
 zHigh=1000
 timeBin=100000000;
 dtFit=1
 
 #==============================================
-echo ======================================
+echo ======================================	
 echo ============= REACTOR ON =============
 echo ======================================
 
-export AD_AC227ANALYSIS_RESULTS=$P2X_ANALYZED/Results/RxOn
-export AD_AC227_PLOTS=$P2X_ANALYZED/Plots/RxOn
+export AD_AC227ANALYSIS_RESULTS=$AD_ANALYSIS/Results/RxOn
+export AD_AC227_PLOTS=$AD_ANALYSIS/Plots/RxOn
 
 #==============================================
 echo ========== Making TAc Class ==========
@@ -29,7 +29,7 @@ EOF
 
 mv RNPO* Calculate/
 
-echo ========= Running RnPoVsCell =========
+echo ========= Running RnPoVsCell =========	
 root -l -b <<EOF 
 .L Calculate/RnPoVsCell.C+
 RnPoVsCell($p_lowPSD,$d_lowPSD,$p_lowE,$d_lowE,$zLow,$zHigh,$dtFit)
@@ -48,8 +48,8 @@ echo =======================================
 echo ============= REACTOR OFF =============
 echo =======================================
 
-export AD_AC227ANALYSIS_RESULTS=$P2X_ANALYZED/Results/RxOff
-export AD_AC227_PLOTS=$P2X_ANALYZED/Plots/RxOff
+export AD_AC227ANALYSIS_RESULTS=$AD_ANALYSIS/Results/RxOff
+export AD_AC227_PLOTS=$AD_ANALYSIS/Plots/RxOff
 
 #==============================================
 echo ========== Making TAc Class ==========
@@ -77,13 +77,14 @@ RnPoVsTime($p_lowPSD,$d_lowPSD,$p_lowE,$d_lowE,$zLow,$zHigh,$timeBin,$dtFit)
 .q
 EOF
 
+
 #==============================================
 echo ======================================
 echo ============== PLOTTING ==============
 echo ======================================
 
-export AD_AC227ANALYSIS_RESULTS=$P2X_ANALYZED/Results
-export AD_AC227_PLOTS=$P2X_ANALYZED/Plots
+export AD_AC227ANALYSIS_RESULTS=$AD_ANALYSIS/Results
+export AD_AC227_PLOTS=$AD_ANALYSIS/Plots
 
 echo ======= Running PlotRxOnVsRxOff =======
 root -l -b <<EOF 
@@ -91,5 +92,4 @@ root -l -b <<EOF
 PlotRxOnVsRxOff()
 .q
 EOF
-
 

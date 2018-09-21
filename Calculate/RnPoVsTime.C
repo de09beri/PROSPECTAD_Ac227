@@ -53,6 +53,8 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 	vector<double> vPoPosMean,  vPoPosMeanErr,  vPoPosSigma,  vPoPosSigmaErr;
 	vector<double> vRnPoDzMean, vRnPoDzMeanErr, vRnPoDzSigma, vRnPoDzSigmaErr;
 
+	vector<double> vTotLivetime, vPileupVetoT, vMuonVetoT;
+
 	//---------------------------------------------------------------------------------
 	RNPO *rnpo = new RNPO();
 	
@@ -66,15 +68,15 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 
 	// Get cut values
 	rnpo->GetEntry(0);
-    promptLowPSDCut  = (p_lowPSD > rnpo->p_PSDCut[0]) ? p_lowPSD : rnpo->p_PSDCut[0];
-    promptHighPSDCut = rnpo->p_PSDCut[1];
-    delayLowPSDCut   = (d_lowPSD > rnpo->d_PSDCut[0]) ? d_lowPSD : rnpo->d_PSDCut[0];
-    delayHighPSDCut  = rnpo->d_PSDCut[1];
-    promptLowEnCut   = (p_lowE > rnpo->p_ECut[0]) ? p_lowE : rnpo->p_ECut[0];
-    promptHighEnCut  = rnpo->p_ECut[1];
-    delayLowEnCut    = (d_lowE > rnpo->d_ECut[0]) ? d_lowE : rnpo->d_ECut[0];
-    delayHighEnCut   = rnpo->d_ECut[1];
-    dzCut            = rnpo->dzCut;
+	promptLowPSDCut  = (p_lowPSD > rnpo->p_PSDCut[0]) ? p_lowPSD : rnpo->p_PSDCut[0];
+	promptHighPSDCut = rnpo->p_PSDCut[1];
+	delayLowPSDCut   = (d_lowPSD > rnpo->d_PSDCut[0]) ? d_lowPSD : rnpo->d_PSDCut[0];
+	delayHighPSDCut  = rnpo->d_PSDCut[1];
+	promptLowEnCut   = (p_lowE > rnpo->p_ECut[0]) ? p_lowE : rnpo->p_ECut[0];
+    	promptHighEnCut  = rnpo->p_ECut[1];
+    	delayLowEnCut    = (d_lowE > rnpo->d_ECut[0]) ? d_lowE : rnpo->d_ECut[0];
+    	delayHighEnCut   = rnpo->d_ECut[1];
+    	dzCut            = rnpo->dzCut;
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 	//---------------------------------------------------------------------------------
@@ -145,7 +147,6 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 			if(rnpo->d_t < lastTime){ 
 				livetime += lastTime*(1e-6);		//livetime in ms	
 
-				OCSTime += lastOCSTime*(1e-6);
 				muonVetoTime += lastMuonVetoTime*(1e-6);
 	
 				sumWeightedTimestamp += lastRunTime * ((lastRunTime/2.0)+lastTimestamp);
@@ -164,7 +165,6 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 			}
 
 			lastTime = rnpo->d_t;
-			lastOCSTime = rnpo->OCSVeto_t;
 			lastMuonVetoTime = rnpo->muonVeto_t;
 			lastRunTime = ((TVectorD*)rnpo->fChain->GetCurrentFile()->Get("runtime"))->Norm1();		//seconds
 			lastTimestamp = rnpo->tstamp;			//epoch seconds	
@@ -177,7 +177,6 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 				//if livetime is less than 12 hours 
 				if(livetime*(2.778e-7) < 12) goto endloop;
 
-				OCSTime += lastOCSTime*(1e-6);
 				muonVetoTime += lastMuonVetoTime*(1e-6);
 	
 				sumWeightedTimestamp += lastRunTime * ((lastRunTime/2.0)+lastTimestamp);
@@ -195,9 +194,15 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 			//Fill histograms
 
 			seg = rnpo->d_seg;
+
+			double rnpo_p_E = rnpo->p_ESmear;	
+			double rnpo_d_E = rnpo->d_ESmear;
+			double rnpo_f_E = rnpo->f_ESmear;
+/*
 			double rnpo_p_E = rnpo->p_E;	
 			double rnpo_d_E = rnpo->d_E;
 			double rnpo_f_E = rnpo->f_E;
+*/
 			exclude = find(begin(ExcludeCellArr), end(ExcludeCellArr), seg) != end(ExcludeCellArr);
 			if(exclude) continue;
 
@@ -247,10 +252,12 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 		double pileupVetoCorr = (2.0*pileupVetoTime)/(livetime);
 
 		printf("Time bin: %i  |  Livetime: %f hrs \n",numTimeBin,livetime*(2.778e-7));
-		printf("OCS time: %f ms   |   Muon time: %f ms \n",OCSTime,muonVetoTime);
 		printf("Pileup veto correction: %f \n",pileupVetoCorr);
 
-		livetime = livetime - OCSTime;
+		vTotLivetime.push_back(livetime);
+		vPileupVetoT.push_back(pileupVetoTime);
+		vMuonVetoT.push_back(muonVetoTime);
+
 		livetime = livetime - 2.0*muonVetoTime;
 		livetime = livetime*(1-pileupVetoCorr);
 		vLivetime.push_back(livetime);
@@ -448,7 +455,12 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 	TGraphErrors *grPoPosMean 	= new TGraphErrors(numPt,x,y,xErr,yErr);
 	TGraphErrors *grPoPosSigma 	= new TGraphErrors(numPt,x,y,xErr,yErr);
 	TGraphErrors *grRnPoDzMean 	= new TGraphErrors(numPt,x,y,xErr,yErr);
-	TGraphErrors *grRnPoDzSigma = new TGraphErrors(numPt,x,y,xErr,yErr);
+	TGraphErrors *grRnPoDzSigma 	= new TGraphErrors(numPt,x,y,xErr,yErr);
+
+	TGraph *grLivetime 	= new TGraph(numPt,x,y);
+	TGraph *grTotLivetime 	= new TGraph(numPt,x,y);
+	TGraph *grPileupVeto	= new TGraph(numPt,x,y);
+	TGraph *grMuonVeto	= new TGraph(numPt,x,y);
 
 	//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	//Fill TGraphs
@@ -487,6 +499,13 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 
 		grRnPoDzSigma->SetPoint(i,time,vRnPoDzSigma[i]);
 		grRnPoDzSigma->SetPointError(i,0,vRnPoDzSigmaErr[i]);
+
+
+		grLivetime->SetPoint(i,time,vLivetime[i]);
+		grTotLivetime->SetPoint(i,time,vTotLivetime[i]);
+		grPileupVeto->SetPoint(i,time,vPileupVetoT[i]);
+		grMuonVeto->SetPoint(i,time,vMuonVetoT[i]);
+	
 	}	//end for loop to populate TGraphs
 
 	//---------------------------------------------------------------------------------
@@ -504,6 +523,11 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 	grPoPosSigma->Write("grPoPosSigma");
 	grRnPoDzMean->Write("grRnPoDzMean");
 	grRnPoDzSigma->Write("grRnPoDzSigma");	
+	grLivetime->Write("grLivetime");
+	grTotLivetime->Write("grTotLivetime");
+	grPileupVeto->Write("grPileupVeto");
+	grMuonVeto->Write("grMuonVeto");
+
 
 	graphFile->Close();
 

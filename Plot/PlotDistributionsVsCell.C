@@ -18,14 +18,12 @@
 #include "TLatex.h"
 #include "TMath.h"
 #include "TGraphErrors.h"
+#include "Header.C"
 
 int PlotDistributionsVsCell(int cellNum){
 
 	setup_PROSPECT_style();
   	gROOT->ForceStyle();
-
-	const int NUMEXCLUDECELLS = 32;
-	int ExcludeCellArr[NUMEXCLUDECELLS] = {0, 1, 2, 3, 5, 6, 9, 10, 11, 12, 13, 18, 21, 23, 27, 31, 32, 34, 41, 44, 48, 52, 56, 63, 69, 79, 86, 87, 115, 122, 127, 139};
 
 	if(find(begin(ExcludeCellArr), end(ExcludeCellArr), cellNum) != end(ExcludeCellArr)){
 		printf("No information for cell %i. Exiting. \n",cellNum);
@@ -223,7 +221,7 @@ int PlotDistributionsVsCell(int cellNum){
 	gPad->SetGrid();
 	hRnPoDz->GetYaxis()->SetTitleOffset(0.9);
 	hRnPoDz->Draw();
-	hRnPoDz->GetXaxis()->SetTitle("z_{#alphaPo} - z_{#alphaRn} [ms]");
+	hRnPoDz->GetXaxis()->SetTitle("z_{#alphaPo} - z_{#alphaRn} [mm]");
 	fRnPoDzGaus->SetLineStyle(2);
 	fRnPoDzGaus->Draw("same");	
 	pt = new TPaveText(0.68,0.63,0.95,0.9,"NDCNB");

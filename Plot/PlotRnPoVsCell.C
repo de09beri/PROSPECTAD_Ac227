@@ -120,48 +120,46 @@ cout<<"\n DZ SIGMA"<<endl;
 	grRate->GetXaxis()->SetTitle(xLabel);
 	grRate->GetYaxis()->SetTitle("R_{RnPo} [mHz]");
 	grRate->Draw("AP");
-	cRate->SaveAs(Form("%s/RatePerCell.pdf",gSystem->Getenv("AD_AC227_PLOTS")));
-	cRate->SaveAs(Form("%s/RatePerCell.png",gSystem->Getenv("AD_AC227_PLOTS")));
 	cRate->SaveAs(Form("%s/RatePerCell.C",gSystem->Getenv("AD_AC227_PLOTS")));
+	cRate->SaveAs(Form("%s/RatePerCell.png",gSystem->Getenv("AD_AC227_PLOTS")));
 
 	gStyle->SetPaintTextFormat("2.2f");
 	TCanvas *cRate2D = new TCanvas("cRate2D","Rate per cell",1);
 	gPad->SetRightMargin(0.16);
 	h2DRate->SetMarkerSize(1.25);
-	h2DRate->SetMinimum(3.13);
+	h2DRate->SetMinimum(3.2);
 	h2DRate->Draw("colz && text");	
-	cRate2D->SaveAs(Form("%s/2DRatePerCell.pdf",gSystem->Getenv("AD_AC227_PLOTS")));
+	cRate2D->SaveAs(Form("%s/2DRatePerCell.C",gSystem->Getenv("AD_AC227_PLOTS")));
 	cRate2D->SaveAs(Form("%s/2DRatePerCell.png",gSystem->Getenv("AD_AC227_PLOTS")));
 
 	TCanvas *cRelRate2D = new TCanvas("cRelRate2D","Relative rate per cell",1);
 	gPad->SetRightMargin(0.16);
 	h2DRelRate->SetMarkerSize(1.25);
-	h2DRelRate->SetMinimum(0.96);
+	h2DRelRate->SetMinimum(0.93);
 	h2DRelRate->Draw("colz && text");	
-	cRelRate2D->SaveAs(Form("%s/2DRelRatePerCell.pdf",gSystem->Getenv("AD_AC227_PLOTS")));
+	cRelRate2D->SaveAs(Form("%s/2DRelRatePerCell.C",gSystem->Getenv("AD_AC227_PLOTS")));
 	cRelRate2D->SaveAs(Form("%s/2DRelRatePerCell.png",gSystem->Getenv("AD_AC227_PLOTS")));
 
 	TCanvas *cRelRate = new TCanvas("cRelRate","Relative rate per cell",1000,400);
 	grRelRate->GetXaxis()->SetTitle(xLabel);
 	grRelRate->GetYaxis()->SetTitle("R_{RnPo}/#LTR_{RnPo}#GT");  
-	grRelRate->GetYaxis()->SetRangeUser(0.95,1.04);
+	grRelRate->GetYaxis()->SetRangeUser(0.93,1.07);
 	grRelRate->Draw("AP");
-	cRelRate->SaveAs(Form("%s/RelativeRatePerCell.pdf",gSystem->Getenv("AD_AC227_PLOTS")));
-	cRelRate->SaveAs(Form("%s/RelativeRatePerCell.png",gSystem->Getenv("AD_AC227_PLOTS")));
 	cRelRate->SaveAs(Form("%s/RelativeRatePerCell.C",gSystem->Getenv("AD_AC227_PLOTS")));
+	cRelRate->SaveAs(Form("%s/RelativeRatePerCell.png",gSystem->Getenv("AD_AC227_PLOTS")));
 
 	TCanvas *cRelPoPSDMean = new TCanvas("cRelPoPSDMean","Relative Po PSD Mean",1000,400);
 	grRelPoPSDMean->GetXaxis()->SetTitle(xLabel);
 	grRelPoPSDMean->GetYaxis()->SetTitle("PSD_{#muPo}/#LTPSD_{#muPo}#GT");
 	grRelPoPSDMean->Draw("AP");
-	cRelPoPSDMean->SaveAs(Form("%s/RelativePoPSDMeanPerCell.pdf",gSystem->Getenv("AD_AC227_PLOTS")));
+	cRelPoPSDMean->SaveAs(Form("%s/RelativePoPSDMeanPerCell.C",gSystem->Getenv("AD_AC227_PLOTS")));
 	cRelPoPSDMean->SaveAs(Form("%s/RelativePoPSDMeanPerCell.png",gSystem->Getenv("AD_AC227_PLOTS")));
 
 	TCanvas *cRelPoPSDSigma = new TCanvas("cRelPoPSDSigma","Relative Po PSD Sigma",1000,400);
 	grRelPoPSDSigma->GetXaxis()->SetTitle(xLabel);
 	grRelPoPSDSigma->GetYaxis()->SetTitle("PSD_{#sigmaPo}/#LTPSD_{#sigmaPo}#GT");
 	grRelPoPSDSigma->Draw("AP");
-	cRelPoPSDSigma->SaveAs(Form("%s/RelativePoPSDSigmaPerCell.pdf",gSystem->Getenv("AD_AC227_PLOTS")));
+	cRelPoPSDSigma->SaveAs(Form("%s/RelativePoPSDSigmaPerCell.C",gSystem->Getenv("AD_AC227_PLOTS")));
 	cRelPoPSDSigma->SaveAs(Form("%s/RelativePoPSDSigmaPerCell.png",gSystem->Getenv("AD_AC227_PLOTS")));
 
 	TCanvas *cRelPoEnMean = new TCanvas("cRelPoEnMean","Relative Po Energy Mean",1000,400);
@@ -169,43 +167,49 @@ cout<<"\n DZ SIGMA"<<endl;
 	grRelPoEnMean->GetYaxis()->SetTitle("E_{#muPo}/#LTE_{#muPo}#GT");
 	grRelPoEnMean->GetYaxis()->SetRangeUser(0.994,1.006);
 	grRelPoEnMean->Draw("AP");
-	cRelPoEnMean->SaveAs(Form("%s/RelativePoEnMeanPerCell.pdf",gSystem->Getenv("AD_AC227_PLOTS")));
+	cRelPoEnMean->SaveAs(Form("%s/RelativePoEnMeanPerCell.C",gSystem->Getenv("AD_AC227_PLOTS")));
 	cRelPoEnMean->SaveAs(Form("%s/RelativePoEnMeanPerCell.png",gSystem->Getenv("AD_AC227_PLOTS")));
 
 	TCanvas *cRelPoEnSigma = new TCanvas("cRelPoEnSigma","Relative Po Energy Sigma",1000,400);
 	grRelPoEnSigma->GetXaxis()->SetTitle(xLabel);
 	grRelPoEnSigma->GetYaxis()->SetTitle("E_{#sigmaPo}/#LTE_{#sigmaPo}#GT");
-	grRelPoEnSigma->GetYaxis()->SetRangeUser(0.85,1.3);
 	grRelPoEnSigma->Draw("AP");
-	cRelPoEnSigma->SaveAs(Form("%s/RelativePoEnSigmaPerCell.pdf",gSystem->Getenv("AD_AC227_PLOTS")));
+	cRelPoEnSigma->SaveAs(Form("%s/RelativePoEnSigmaPerCell.C",gSystem->Getenv("AD_AC227_PLOTS")));
 	cRelPoEnSigma->SaveAs(Form("%s/RelativePoEnSigmaPerCell.png",gSystem->Getenv("AD_AC227_PLOTS")));
 
 	TCanvas *cRelPoPosMean = new TCanvas("cRelPoPosMean","Relative Po Position Mean",1000,400);
 	grRelPoPosMean->GetXaxis()->SetTitle(xLabel);
 	grRelPoPosMean->GetYaxis()->SetTitle("z_{#muPo}/#LTz_{#muPo}#GT");
 	grRelPoPosMean->Draw("AP");
-	cRelPoPosMean->SaveAs(Form("%s/RelativePoPosMeanPerCell.pdf",gSystem->Getenv("AD_AC227_PLOTS")));
+	cRelPoPosMean->SaveAs(Form("%s/RelativePoPosMeanPerCell.C",gSystem->Getenv("AD_AC227_PLOTS")));
 	cRelPoPosMean->SaveAs(Form("%s/RelativePoPosMeanPerCell.png",gSystem->Getenv("AD_AC227_PLOTS")));
 
 	TCanvas *cRelPoPosSigma = new TCanvas("cRelPoPosSigma","Relative Po Position Sigma",1000,400);
 	grRelPoPosSigma->GetXaxis()->SetTitle(xLabel);
 	grRelPoPosSigma->GetYaxis()->SetTitle("z_{RMS Po}/#LTz_{RMS Po}#GT");
 	grRelPoPosSigma->Draw("AP");
-	cRelPoPosSigma->SaveAs(Form("%s/RelativePoPosSigmaPerCell.pdf",gSystem->Getenv("AD_AC227_PLOTS")));
+	cRelPoPosSigma->SaveAs(Form("%s/RelativePoPosSigmaPerCell.C",gSystem->Getenv("AD_AC227_PLOTS")));
 	cRelPoPosSigma->SaveAs(Form("%s/RelativePoPosSigmaPerCell.png",gSystem->Getenv("AD_AC227_PLOTS")));
 
 	TCanvas *cRelRnPoDzMean = new TCanvas("cRelRnPoDzMean","Relative RnPo Dz Mean",1000,400);
 	grRelRnPoDzMean->GetXaxis()->SetTitle(xLabel);
 	grRelRnPoDzMean->GetYaxis()->SetTitle("dz_{#mu}/#LTdz_{#mu}#GT");
 	grRelRnPoDzMean->Draw("AP");
-	cRelRnPoDzMean->SaveAs(Form("%s/RelativeRnPoDzMeanPerCell.pdf",gSystem->Getenv("AD_AC227_PLOTS")));
+	cRelRnPoDzMean->SaveAs(Form("%s/RelativeRnPoDzMeanPerCell.C",gSystem->Getenv("AD_AC227_PLOTS")));
 	cRelRnPoDzMean->SaveAs(Form("%s/RelativeRnPoDzMeanPerCell.png",gSystem->Getenv("AD_AC227_PLOTS")));
 
 	TCanvas *cRelRnPoDzSigma = new TCanvas("cRelRnPoDzSigma","Relative RnPo Dz Sigma",1000,400);
 	grRelRnPoDzSigma->GetXaxis()->SetTitle(xLabel);
 	grRelRnPoDzSigma->GetYaxis()->SetTitle("dz_{#sigma}/#LTdz_{#sigma}#GT");
 	grRelRnPoDzSigma->Draw("AP");
-	cRelRnPoDzSigma->SaveAs(Form("%s/RelativeRnPoDzSigmaPerCell.pdf",gSystem->Getenv("AD_AC227_PLOTS")));
+	cRelRnPoDzSigma->SaveAs(Form("%s/RelativeRnPoDzSigmaPerCell.C",gSystem->Getenv("AD_AC227_PLOTS")));
 	cRelRnPoDzSigma->SaveAs(Form("%s/RelativeRnPoDzSigmaPerCell.png",gSystem->Getenv("AD_AC227_PLOTS")));
+
+	TCanvas *cEff = new TCanvas("cEff","Total Efficiency",1000,400);
+	grTotEff->GetXaxis()->SetTitle(xLabel);
+	grTotEff->GetYaxis()->SetTitle("Efficiency");
+	grTotEff->Draw("AP");
+	cEff->SaveAs(Form("%s/EfficiencyPerCell.C",gSystem->Getenv("AD_AC227_PLOTS")));
+	cEff->SaveAs(Form("%s/EfficiencyPerCell.png",gSystem->Getenv("AD_AC227_PLOTS")));
 
 } 	//end PlotRnPoVsCell
