@@ -119,7 +119,16 @@ void RnPoVsCell(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 	TGraphErrors *grPoPosMean 	= new TGraphErrors(numActiveCells,x,y,xErr,yErr);
 	TGraphErrors *grPoPosSigma 	= new TGraphErrors(numActiveCells,x,y,xErr,yErr);
 	TGraphErrors *grRnPoDzMean 	= new TGraphErrors(numActiveCells,x,y,xErr,yErr);
-	TGraphErrors *grRnPoDzSigma = new TGraphErrors(numActiveCells,x,y,xErr,yErr);
+	TGraphErrors *grRnPoDzSigma 	= new TGraphErrors(numActiveCells,x,y,xErr,yErr);
+
+	TGraph *grBGRate = new TGraph(numActiveCells,x,y);
+
+	TGraph *grRnPSDChiSq = new TGraph(numActiveCells,x,y);
+	TGraph *grPoPSDChiSq = new TGraph(numActiveCells,x,y);
+	TGraph *grRnEnChiSq  = new TGraph(numActiveCells,x,y);
+	TGraph *grPoEnChiSq  = new TGraph(numActiveCells,x,y);
+	TGraph *grDzChiSq    = new TGraph(numActiveCells,x,y);
+	TGraph *grDtChiSq    = new TGraph(numActiveCells,x,y);
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 	//---------------------------------------------------------------------------------
@@ -175,23 +184,23 @@ void RnPoVsCell(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 
 		if(rnpo->d_t < lastTime){ 
 			livetime += lastTime*(1e-6);		//livetime in ms	
-//			OCSTime += lastOCSTime*(1e-6);
 			muonVetoTime += lastMuonVetoTime*(1e-6);
 			totRuntime += lastRuntime;
 			numClusts += lastNumClusts;
 		}
 		lastTime = rnpo->d_t;
-//		lastOCSTime = rnpo->OCSVeto_t;
 		lastMuonVetoTime = rnpo->muonVeto_t;
 		lastNumClusts = rnpo->numClust;
 		lastRuntime = ((TVectorD*)rnpo->fChain->GetCurrentFile()->Get("runtime"))->Norm1();	//[s]	
 
 		seg = rnpo->d_seg;
 
+
 		double rnpo_p_E = rnpo->p_ESmear;	
 		double rnpo_d_E = rnpo->d_ESmear;
 		double rnpo_f_E = rnpo->f_ESmear;
 /*
+
 		double rnpo_p_E = rnpo->p_E;	
 		double rnpo_d_E = rnpo->d_E;
 		double rnpo_f_E = rnpo->f_E;
@@ -261,7 +270,6 @@ void RnPoVsCell(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 
 
 	livetime += lastTime*(1e-6);	//add time from last tree
-//	OCSTime += lastOCSTime*(1e-6);
 	muonVetoTime += lastMuonVetoTime*(1e-6);
 	totRuntime += lastRuntime;
 	numClusts += lastNumClusts;
@@ -272,7 +280,6 @@ void RnPoVsCell(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 	printf("Total runtime: %f hours \n",totRuntime/(60.0*60.0));
 	printf("Livetime: %f hours \n",livetime*(2.778e-7));
 
-//	printf("OCS time: %f ms \n",OCSTime);
 	printf("Muon veto time: %f ms \n",muonVetoTime);
 	printf("Pileup veto time: %f ms \n",pileupVetoTime);
 	printf("Pileup veto correction: %f \n",pileupVetoCorr);
@@ -365,7 +372,7 @@ void RnPoVsCell(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 
 	TF1 *fRnPoDtExp;
 	TF1 *fRnPSDGaus, *fPoPSDGaus;
-	TF1 *fRnEnCB,    *fPoEnGaus;
+	TF1 *fRnEnGaus,  *fPoEnGaus;
 	TF1 *fRnPoDzGaus;
 
 	double promptPSDEff, delayPSDEff, promptPSDEffErr, delayPSDEffErr;
@@ -384,31 +391,37 @@ void RnPoVsCell(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 		exclude = find(begin(ExcludeCellArr), end(ExcludeCellArr), i) != end(ExcludeCellArr);
 		if(exclude) continue;
 
+		double BGRate = (hBGDt[i]->GetEntries()/livetime)*(1e6);
+
 	//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	//Fit distributions
 		fRnPoDtExp = new TF1("fRnPoDtExp",Form("[0]*exp(-x/[1])*(%f/[1])",dtBinWidth),dtBinWidth*dtFit,dtMax);
 		fRnPoDtExp->SetParameter(1,POLIFETIME);
 		hRnPoDt[i]->Fit(fRnPoDtExp,"RQ0");	
 
-		double fitPSDMin = 0.20;
-		fRnPSDGaus = new TF1("fRnPSDGaus","gaus",fitPSDMin,PSDMax);
-		hRnPSD[i]->Fit(fRnPSDGaus,"RQ0");
+		double fitPSDMin = promptLowPSDCut;
+		double maxValue = hRnPSD[i]->GetMaximum(), maxBin = hRnPSD[i]->GetBinCenter(hRnPSD[i]->GetMaximumBin());	
+		fRnPSDGaus = new TF1("fRnPSDGaus","gaus(0)+gaus(3)",fitPSDMin,PSDMax);
+		fRnPSDGaus->SetParameters(0.25*maxValue,maxBin+0.01,0.015,0.75*maxValue,maxBin-0.001,0.02);
+		fRnPSDGaus->SetParLimits(0,0,maxValue);
+		fRnPSDGaus->SetParLimits(3,0,maxValue);
+		hRnPSD[i]->Fit(fRnPSDGaus,"RQ0B");
 		fRnPSDGaus->SetRange(PSDMin,PSDMax);
-
+	
+		fitPSDMin = delayLowPSDCut;
 		fPoPSDGaus = new TF1("fPoPSDGaus","gaus",fitPSDMin,PSDMax);
 		hPoPSD[i]->Fit(fPoPSDGaus,"RQ0");
 		fPoPSDGaus->SetRange(PSDMin,PSDMax);
 		
-		double fitRnEnMin = 0.57;	
-		fRnEnCB = new TF1("fRnEnCB","crystalball",fitRnEnMin,EnMax);
-		fRnEnCB->SetParameter(1,0.7);
-		fRnEnCB->SetParameter(2,0.04);
-		fRnEnCB->SetParameter(3,-1.7);
-		fRnEnCB->SetParameter(4,1.2);
-		hRnEn[i]->Fit(fRnEnCB,"RQ0");
-		fRnEnCB->SetRange(EnMin,EnMax);
+		double fitRnEnMin = EnMin;	
+		fRnEnGaus = new TF1("fRnEnGaus","gaus(0)+gaus(3)+gaus(6)",fitRnEnMin,EnMax);
+		maxValue = hRnEn[i]->GetMaximum();
+		maxBin = hRnEn[i]->GetBinCenter(hRnEn[i]->GetMaximumBin());	
+		fRnEnGaus->SetParameters(0.8*maxValue,maxBin,0.035,0.05*maxValue,maxBin+0.14,0.08,0.15*maxValue,maxBin-0.03,0.05);
+		hRnEn[i]->Fit(fRnEnGaus,"RQ0");
+		fRnEnGaus->SetRange(EnMin,EnMax);
 
-		double fitPoEnMin = 0.7;
+		double fitPoEnMin = delayLowEnCut;
 		fPoEnGaus = new TF1("fPoEnGaus","gaus",fitPoEnMin,EnMax);
 		hPoEn[i]->Fit(fPoEnGaus,"RQ0");
 		fPoEnGaus->SetRange(EnMin,EnMax);
@@ -424,7 +437,7 @@ void RnPoVsCell(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 		delayPSDEff = fPoPSDGaus->Integral(delayLowPSDCut,delayHighPSDCut)/fPoPSDGaus->Integral(PSDMin,PSDMax);
 		delayPSDEffErr = sqrt((delayPSDEff*(1-delayPSDEff))/hPoPSD[i]->GetEntries()); 
 		
-		promptEnEff = fRnEnCB->Integral(promptLowEnCut,promptHighEnCut)/fRnEnCB->Integral(EnMin,EnMax);
+		promptEnEff = fRnEnGaus->Integral(promptLowEnCut,promptHighEnCut)/fRnEnGaus->Integral(EnMin,EnMax);
 		promptEnEffErr = sqrt((promptEnEff*(1-promptEnEff))/hRnEn[i]->GetEntries());
 
 		delayEnEff = fPoEnGaus->Integral(delayLowEnCut,delayHighEnCut)/fPoEnGaus->Integral(EnMin,EnMax);
@@ -507,6 +520,18 @@ void RnPoVsCell(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 		grRnPoDzSigma->SetPoint(grPt,i,fRnPoDzGaus->GetParameter(2));
 		grRnPoDzSigma->SetPointError(grPt,0,fRnPoDzGaus->GetParError(2));
 
+		grBGRate->SetPoint(grPt,i,BGRate);
+
+		grRnPSDChiSq->SetPoint(grPt,i,fRnPSDGaus->GetChisquare()/(double)fRnPSDGaus->GetNDF());
+		grPoPSDChiSq->SetPoint(grPt,i,fPoPSDGaus->GetChisquare()/(double)fPoPSDGaus->GetNDF());
+	
+		grRnEnChiSq->SetPoint(grPt,i,fRnEnGaus->GetChisquare()/(double)fRnEnGaus->GetNDF());
+		grPoEnChiSq->SetPoint(grPt,i,fPoEnGaus->GetChisquare()/(double)fPoEnGaus->GetNDF());
+		
+		grDzChiSq->SetPoint(grPt,i,fRnPoDzGaus->GetChisquare()/(double)fRnPoDzGaus->GetNDF());	
+	
+		grDtChiSq->SetPoint(grPt,i,fRnPoDtExp->GetChisquare()/(double)fRnPoDtExp->GetNDF());
+
 		grPt++;
 
 	}	//end for loop to calculate results
@@ -535,6 +560,13 @@ void RnPoVsCell(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 	grPoPosSigma->Write("grPoPosSigma");
 	grRnPoDzMean->Write("grRnPoDzMean");
 	grRnPoDzSigma->Write("grRnPoDzSigma");	
+	grBGRate->Write("grBGRate");
+	grRnPSDChiSq->Write("grRnPSDChiSq");
+	grPoPSDChiSq->Write("grPoPSDChiSq");
+	grRnEnChiSq->Write("grRnEnChiSq");
+	grPoEnChiSq->Write("grPoEnChiSq");
+	grDzChiSq->Write("grDzChiSq");
+	grDtChiSq->Write("grDtChiSq");
 
 	graphFile->Close();
 

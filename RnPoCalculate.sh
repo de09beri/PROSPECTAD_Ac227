@@ -8,14 +8,14 @@
 # $5: Run RnPoColVsTime.C and RnPoRowVsTime.C
 
 
-p_lowPSD=0.16
-d_lowPSD=0.16
+p_lowPSD=0.18
+d_lowPSD=0.17
 p_lowE=0.48
 d_lowE=0.65
 
-zLow=-1000
-zHigh=1000
-timeBin=47.5
+zLow=-444
+zHigh=444
+timeBin=35.5
 timeBinCell=35.5
 dtFit=1
 
@@ -42,6 +42,7 @@ echo ========= Running RnPoVsCell =========
 
 if [ $2 -eq 1 ]
 then
+
 
 root -l -b <<EOF 
 .L Calculate/RnPoVsCell.C+

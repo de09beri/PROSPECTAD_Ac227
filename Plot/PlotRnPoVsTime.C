@@ -41,7 +41,9 @@ TGraphErrors *makeRelGr(TGraphErrors *gr, double mean, double meanErr){
 }
 
 TGraphErrors *makeCorrGr(TGraphErrors *gr, TF1 *fExp){
+	gr->RemovePoint(0);
 	TGraphErrors *grCorr = (TGraphErrors*)gr->Clone();
+
 	int numPt = gr->GetN();
 
 	double t0, N0;
@@ -85,7 +87,29 @@ void PlotRnPoVsTime(){
 	TGraphErrors *grPoPosMean 	= (TGraphErrors*)f->Get("grPoPosMean");
 	TGraphErrors *grPoPosSigma 	= (TGraphErrors*)f->Get("grPoPosSigma");
 	TGraphErrors *grRnPoDzMean 	= (TGraphErrors*)f->Get("grRnPoDzMean");
-	TGraphErrors *grRnPoDzSigma = (TGraphErrors*)f->Get("grRnPoDzSigma");
+	TGraphErrors *grRnPoDzSigma 	= (TGraphErrors*)f->Get("grRnPoDzSigma");
+
+	TGraph *grLivetime    = (TGraph*)f->Get("grLivetime");
+	TGraph *grTotLivetime = (TGraph*)f->Get("grTotLivetime");
+	TGraph *grPileupVeto  = (TGraph*)f->Get("grPileupVeto");
+	TGraph *grMuonVeto    = (TGraph*)f->Get("grMuonVeto");
+	TGraph *grPileupVetoFrac  = (TGraph*)f->Get("grPileupVetoFrac");
+	TGraph *grMuonVetoFrac    = (TGraph*)f->Get("grMuonVetoFrac");
+	
+	TGraphErrors *grPromptEnEff  = (TGraphErrors*)f->Get("grPromptEnEff");
+	TGraphErrors *grDelayEnEff   = (TGraphErrors*)f->Get("grDelayEnEff");
+	TGraphErrors *grPromptPSDEff = (TGraphErrors*)f->Get("grPromptPSDEff");
+	TGraphErrors *grDelayPSDEff  = (TGraphErrors*)f->Get("grDelayPSDEff");
+	TGraphErrors *grDzEff  	     = (TGraphErrors*)f->Get("grDzEff");
+
+	TGraph *grRnPSDChiSq = (TGraph*)f->Get("grRnPSDChiSq");
+	TGraph *grPoPSDChiSq = (TGraph*)f->Get("grPoPSDChiSq");
+	TGraph *grRnEnChiSq  = (TGraph*)f->Get("grRnEnChiSq");
+	TGraph *grPoEnChiSq  = (TGraph*)f->Get("grPoEnChiSq");
+	TGraph *grDzChiSq    = (TGraph*)f->Get("grDzChiSq");
+	TGraph *grDtChiSq    = (TGraph*)f->Get("grDtChiSq");
+
+	TGraph *grBGRate = (TGraph*)f->Get("grBGRate");	
 
 	f->Close();
 	
@@ -131,7 +155,7 @@ cout<<"\n DZ SIGMA"<<endl;
 
 	int numPt = grRate->GetN();
 	double grxStart, grxEnd, gryStart, gryEnd;
-	grRate->GetPoint(1,grxStart,gryStart);
+	grRate->GetPoint(0,grxStart,gryStart);
 	grRate->GetPoint(numPt-1,grxEnd,gryEnd);
 
 	double May01_2018  = 1525168800;	//Rx On
@@ -170,6 +194,7 @@ cout<<"\n DZ SIGMA"<<endl;
 	grJulyOn_2018->SetFillStyle(3002);
 	grJulyOn_2018->SetFillColor(16);
 
+	//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`
 	TCanvas *cRate = new TCanvas("cRate","Rate vs time",1000,400);
 	grRate->GetXaxis()->SetTitle(xLabel);
 	grRate->GetYaxis()->SetTitle("R_{RnPo} [Hz]");
@@ -182,13 +207,17 @@ cout<<"\n DZ SIGMA"<<endl;
 	grRate->Draw("P");
 	cRate->SaveAs(Form("%s/RateVsTime.C",gSystem->Getenv("AD_AC227_PLOTS")));
 	cRate->SaveAs(Form("%s/RateVsTime.png",gSystem->Getenv("AD_AC227_PLOTS")));
-/*
+
 	TCanvas *cRelRate = new TCanvas("cRelRate","Relative rate vs time",1000,400);
 	grRelRate->GetXaxis()->SetTitle(xLabel);
 	grRelRate->GetYaxis()->SetTitle("R_{RnPo}/#LTR_{RnPo}#GT");  
 	grRelRate->GetXaxis()->SetTimeDisplay(1);
 	grRelRate->GetXaxis()->SetTimeFormat("%m/%d");
 	grRelRate->Draw("AP");
+	grMayOn_2018->Draw("f");
+	grJuneOn_2018->Draw("f");
+	grJulyOn_2018->Draw("f");
+	grRelRate->Draw("P");
 	cRelRate->SaveAs(Form("%s/RelativeRateVsTime.C",gSystem->Getenv("AD_AC227_PLOTS")));
 	cRelRate->SaveAs(Form("%s/RelativeRateVsTime.png",gSystem->Getenv("AD_AC227_PLOTS")));
 
@@ -196,6 +225,7 @@ cout<<"\n DZ SIGMA"<<endl;
 	TF1 *fAcExp = new TF1("fAcExp","[0]*exp(-((x-[2])*log(2)/([1]*365.0*24.0*60.0*60.0)))",grxStart,grxEnd);
 	fAcExp->SetParameters(2,21.772);
 	fAcExp->FixParameter(2,grxStart);
+	fAcExp->SetParLimits(2,0,100);
 
 	TF1 *fAcExpFixed = new TF1("fAcExp","[0]*exp(-((x-[2])*log(2)/([1]*365.0*24.0*60.0*60.0)))",grxStart,grxEnd);
 	fAcExpFixed->FixParameter(1,21.772);
@@ -208,8 +238,12 @@ cout<<"\n DZ SIGMA"<<endl;
 	grRate->GetXaxis()->SetTimeDisplay(1);
 	grRate->GetXaxis()->SetTimeFormat("%m/%d");
 	grRate->Draw("AP");
-	grRate->Fit(fAcExp,"0R");
+	grRate->Fit(fAcExp,"0RB");
 	grRate->Fit(fAcExpFixed,"0R");
+	grMayOn_2018->Draw("f");
+	grJuneOn_2018->Draw("f");
+	grJulyOn_2018->Draw("f");
+	grRate->Draw("P");
 	fAcExp->Draw("same");
 	fAcExpFixed->SetLineColor(8);
 	fAcExpFixed->Draw("same");
@@ -230,6 +264,9 @@ cout<<"\n DZ SIGMA"<<endl;
 	cRateFit->SaveAs(Form("%s/RateVsTime_Fit.C",gSystem->Getenv("AD_AC227_PLOTS")));
 	cRateFit->SaveAs(Form("%s/RateVsTime_Fit.png",gSystem->Getenv("AD_AC227_PLOTS")));
 
+	TLine *lRateCorr = new TLine(grxStart,1.0,grxEnd,1.0);
+	lRateCorr->SetLineStyle(2);
+	lRateCorr->SetLineColor(kBlack);
 
 	TGraphErrors *grRateCorr = makeCorrGr(grRate,fAcExpFixed);
 	TCanvas *cRateCorr = new TCanvas("cRateCorr","Corrected rate",1000,400);
@@ -239,6 +276,11 @@ cout<<"\n DZ SIGMA"<<endl;
 	grRateCorr->GetXaxis()->SetTimeDisplay(1);
 	grRateCorr->GetXaxis()->SetTimeFormat("%m/%d");
 	grRateCorr->Draw("AP");
+	grMayOn_2018->Draw("f");
+	grJuneOn_2018->Draw("f");
+	grJulyOn_2018->Draw("f");
+	grRateCorr->Draw("P");
+	lRateCorr->Draw("same");
 	grRateCorr->Fit("pol0");
 	TPaveText *pvPol = new TPaveText(0.8,0.8,0.99,0.99,"NDC");
 	pvPol->AddText(Form("#Chi^{2}/NDF  %.1f/%d",grRateCorr->GetFunction("pol0")->GetChisquare(),grRateCorr->GetFunction("pol0")->GetNDF()));
@@ -253,84 +295,281 @@ cout<<"\n DZ SIGMA"<<endl;
 
 	TCanvas *cRelPoPSDMean = new TCanvas("cRelPoPSDMean","Relative Po PSD Mean",1000,400);
 	grRelPoPSDMean->GetXaxis()->SetTitle(xLabel);
-	grRelPoPSDMean->GetYaxis()->SetTitle("PSD_{#muPo}/#LTPSD_{#muPo}#GT");
+	grRelPoPSDMean->GetYaxis()->SetTitle("PSD_{Po}/#LTPSD_{Po}#GT");
 	grRelPoPSDMean->GetXaxis()->SetTimeDisplay(1);
 	grRelPoPSDMean->GetXaxis()->SetTimeFormat("%m/%d");
 	grRelPoPSDMean->Draw("AP");
+	grMayOn_2018->Draw("f");
+	grJuneOn_2018->Draw("f");
+	grJulyOn_2018->Draw("f");
+	grRelPoPSDMean->Draw("P");
 	cRelPoPSDMean->SaveAs(Form("%s/RelativePoPSDMeanVsTime.C",gSystem->Getenv("AD_AC227_PLOTS")));
 	cRelPoPSDMean->SaveAs(Form("%s/RelativePoPSDMeanVsTime.png",gSystem->Getenv("AD_AC227_PLOTS")));
 
 	TCanvas *cRelPoPSDSigma = new TCanvas("cRelPoPSDSigma","Relative Po PSD Sigma",1000,400);
 	grRelPoPSDSigma->GetXaxis()->SetTitle(xLabel);
-	grRelPoPSDSigma->GetYaxis()->SetTitle("PSD_{#sigmaPo}/#LTPSD_{#sigmaPo}#GT");
+	grRelPoPSDSigma->GetYaxis()->SetTitle("#sigma_{PSD}/#LT#sigma_{PSD}#GT");
 	grRelPoPSDSigma->GetXaxis()->SetTimeDisplay(1);
 	grRelPoPSDSigma->GetXaxis()->SetTimeFormat("%m/%d");
 	grRelPoPSDSigma->Draw("AP");
+	grMayOn_2018->Draw("f");
+	grJuneOn_2018->Draw("f");
+	grJulyOn_2018->Draw("f");
+	grRelPoPSDSigma->Draw("P");
 	cRelPoPSDSigma->SaveAs(Form("%s/RelativePoPSDSigmaVsTime.C",gSystem->Getenv("AD_AC227_PLOTS")));
 	cRelPoPSDSigma->SaveAs(Form("%s/RelativePoPSDSigmaVsTime.png",gSystem->Getenv("AD_AC227_PLOTS")));
 
 	TCanvas *cRelPoEnMean = new TCanvas("cRelPoEnMean","Relative Po Energy Mean",1000,400);
 	grRelPoEnMean->GetXaxis()->SetTitle(xLabel);
-	grRelPoEnMean->GetYaxis()->SetTitle("E_{#muPo}/#LTE_{#muPo}#GT");
+	grRelPoEnMean->GetYaxis()->SetTitle("E_{Po}/#LTE_{Po}#GT");
 	grRelPoEnMean->GetXaxis()->SetTimeDisplay(1);
 	grRelPoEnMean->GetXaxis()->SetTimeFormat("%m/%d");
 	grRelPoEnMean->Draw("AP");
+	grMayOn_2018->Draw("f");
+	grJuneOn_2018->Draw("f");
+	grJulyOn_2018->Draw("f");
+	grRelPoEnMean->Draw("P");
 	cRelPoEnMean->SaveAs(Form("%s/RelativePoEnMeanVsTime.C",gSystem->Getenv("AD_AC227_PLOTS")));
 	cRelPoEnMean->SaveAs(Form("%s/RelativePoEnMeanVsTime.png",gSystem->Getenv("AD_AC227_PLOTS")));
 
 	TCanvas *cRelPoEnSigma = new TCanvas("cRelPoEnSigma","Relative Po Energy Sigma",1000,400);
 	grRelPoEnSigma->GetXaxis()->SetTitle(xLabel);
-	grRelPoEnSigma->GetYaxis()->SetTitle("E_{#sigmaPo}/#LTE_{#sigmaPo}#GT");
+	grRelPoEnSigma->GetYaxis()->SetTitle("#sigma_{E}/#LT#sigma_{E}#GT");
 	grRelPoEnSigma->GetXaxis()->SetTimeDisplay(1);
 	grRelPoEnSigma->GetXaxis()->SetTimeFormat("%m/%d");
 	grRelPoEnSigma->Draw("AP");
+	grMayOn_2018->Draw("f");
+	grJuneOn_2018->Draw("f");
+	grJulyOn_2018->Draw("f");
+	grRelPoEnSigma->Draw("P");
 	cRelPoEnSigma->SaveAs(Form("%s/RelativePoEnSigmaVsTime.C",gSystem->Getenv("AD_AC227_PLOTS")));
 	cRelPoEnSigma->SaveAs(Form("%s/RelativePoEnSigmaVsTime.png",gSystem->Getenv("AD_AC227_PLOTS")));
 
 	TCanvas *cRelPoPosMean = new TCanvas("cRelPoPosMean","Relative Po Position Mean",1000,400);
 	grRelPoPosMean->GetXaxis()->SetTitle(xLabel);
-	grRelPoPosMean->GetYaxis()->SetTitle("z_{#muPo}/#LTz_{#muPo}#GT");
+	grRelPoPosMean->GetYaxis()->SetTitle("z_{Po}/#LTz_{Po}#GT");
 	grRelPoPosMean->GetXaxis()->SetTimeDisplay(1);
 	grRelPoPosMean->GetXaxis()->SetTimeFormat("%m/%d");
 	grRelPoPosMean->Draw("AP");
+	grMayOn_2018->Draw("f");
+	grJuneOn_2018->Draw("f");
+	grJulyOn_2018->Draw("f");
+	grRelPoPosMean->Draw("P");
 	cRelPoPosMean->SaveAs(Form("%s/RelativePoPosMeanVsTime.C",gSystem->Getenv("AD_AC227_PLOTS")));
 	cRelPoPosMean->SaveAs(Form("%s/RelativePoPosMeanVsTime.png",gSystem->Getenv("AD_AC227_PLOTS")));
 
 	TCanvas *cRelPoPosSigma = new TCanvas("cRelPoPosSigma","Relative Po Position Sigma",1000,400);
 	grRelPoPosSigma->GetXaxis()->SetTitle(xLabel);
-	grRelPoPosSigma->GetYaxis()->SetTitle("z_{RMS Po}/#LTz_{RMS Po}#GT");
+	grRelPoPosSigma->GetYaxis()->SetTitle("RMS_{z}/#LTRMS_{z}#GT");
 	grRelPoPosSigma->GetXaxis()->SetTimeDisplay(1);
 	grRelPoPosSigma->GetXaxis()->SetTimeFormat("%m/%d");
 	grRelPoPosSigma->Draw("AP");
+	grMayOn_2018->Draw("f");
+	grJuneOn_2018->Draw("f");
+	grJulyOn_2018->Draw("f");
+	grRelPoPosSigma->Draw("P");
 	cRelPoPosSigma->SaveAs(Form("%s/RelativePoPosSigmaVsTime.C",gSystem->Getenv("AD_AC227_PLOTS")));
 	cRelPoPosSigma->SaveAs(Form("%s/RelativePoPosSigmaVsTime.png",gSystem->Getenv("AD_AC227_PLOTS")));
 
 	TCanvas *cRelRnPoDzMean = new TCanvas("cRelRnPoDzMean","Relative RnPo Dz Mean",1000,400);
 	grRelRnPoDzMean->GetXaxis()->SetTitle(xLabel);
-	grRelRnPoDzMean->GetYaxis()->SetTitle("dz_{#mu}/#LTdz_{#mu}#GT");
+	grRelRnPoDzMean->GetYaxis()->SetTitle("dz_{RnPo}/#LTdz_{RnPo}#GT");
 	grRelRnPoDzMean->GetXaxis()->SetTimeDisplay(1);
 	grRelRnPoDzMean->GetXaxis()->SetTimeFormat("%m/%d");
 	grRelRnPoDzMean->Draw("AP");
+	grMayOn_2018->Draw("f");
+	grJuneOn_2018->Draw("f");
+	grJulyOn_2018->Draw("f");
+	grRelRnPoDzMean->Draw("P");
 	cRelRnPoDzMean->SaveAs(Form("%s/RelativeRnPoDzMeanVsTime.C",gSystem->Getenv("AD_AC227_PLOTS")));
 	cRelRnPoDzMean->SaveAs(Form("%s/RelativeRnPoDzMeanVsTime.png",gSystem->Getenv("AD_AC227_PLOTS")));
 
 	TCanvas *cRelRnPoDzSigma = new TCanvas("cRelRnPoDzSigma","Relative RnPo Dz Sigma",1000,400);
 	grRelRnPoDzSigma->GetXaxis()->SetTitle(xLabel);
-	grRelRnPoDzSigma->GetYaxis()->SetTitle("dz_{#sigma}/#LTdz_{#sigma}#GT");
+	grRelRnPoDzSigma->GetYaxis()->SetTitle("#sigma_{dz}/#LT#sigma_{dz}#GT");
 	grRelRnPoDzSigma->GetXaxis()->SetTimeDisplay(1);
 	grRelRnPoDzSigma->GetXaxis()->SetTimeFormat("%m/%d");
 	grRelRnPoDzSigma->Draw("AP");
+	grMayOn_2018->Draw("f");
+	grJuneOn_2018->Draw("f");
+	grJulyOn_2018->Draw("f");
+	grRelRnPoDzSigma->Draw("P");
 	cRelRnPoDzSigma->SaveAs(Form("%s/RelativeRnPoDzSigmaVsTime.C",gSystem->Getenv("AD_AC227_PLOTS")));
 	cRelRnPoDzSigma->SaveAs(Form("%s/RelativeRnPoDzSigmaVsTime.png",gSystem->Getenv("AD_AC227_PLOTS")));
 
-	TCanvas *cEff = new TCanvas("cEff","Total efficiency",1000,400);
+	TCanvas *cEff = new TCanvas("cEff","Efficiency",1000,400);
 	grTotEff->GetXaxis()->SetTitle(xLabel);
 	grTotEff->GetYaxis()->SetTitle("Efficiency");
 	grTotEff->GetXaxis()->SetTimeDisplay(1);
 	grTotEff->GetXaxis()->SetTimeFormat("%m/%d");
+	grTotEff->GetYaxis()->SetRangeUser(0.9980,1.0005);
 	grTotEff->Draw("AP");
+	grMayOn_2018->Draw("f");
+	grJuneOn_2018->Draw("f");
+	grJulyOn_2018->Draw("f");
+	grTotEff->Draw("P");
+
+	grPromptPSDEff->SetMarkerStyle(26);
+	grPromptPSDEff->SetMarkerColor(kBlack);
+	grPromptPSDEff->SetLineColor(kBlack);
+	grDelayPSDEff->SetMarkerStyle(26);
+	grDelayPSDEff->SetMarkerColor(kRed);
+	grDelayPSDEff->SetLineColor(kRed);
+	grPromptEnEff->SetMarkerStyle(25);
+	grPromptEnEff->SetMarkerColor(kBlack);
+	grPromptEnEff->SetLineColor(kBlack);
+	grDelayEnEff->SetMarkerStyle(25);
+	grDelayEnEff->SetMarkerColor(kRed);
+	grDelayEnEff->SetLineColor(kRed);
+	grDzEff->SetMarkerStyle(27);
+	grDzEff->SetMarkerColor(8);
+	grDzEff->SetLineColor(8);
+
+	grPromptPSDEff->Draw("P");
+	grDelayPSDEff->Draw("P");
+	grPromptEnEff->Draw("P");
+	grDelayEnEff->Draw("P");
+	grDzEff->Draw("P");
+
+	TLegend *leg = new TLegend(0.90,0.67,0.99,0.99);
+	leg->AddEntry(grPromptPSDEff,"Prompt PSD","p");
+	leg->AddEntry(grDelayPSDEff,"Delay PSD","p");
+	leg->AddEntry(grPromptEnEff,"Prompt E","p");
+	leg->AddEntry(grDelayEnEff,"Delay E","p");
+	leg->AddEntry(grDzEff,"Dz","p");
+	leg->AddEntry(grTotEff,"Total","p");
+	leg->Draw();	
 	cEff->SaveAs(Form("%s/EfficiencyVsTime.C",gSystem->Getenv("AD_AC227_PLOTS")));
 	cEff->SaveAs(Form("%s/EfficiencyVsTime.png",gSystem->Getenv("AD_AC227_PLOTS")));
 
-*/
+	TCanvas *cVetoTime = new TCanvas("cVetoTime","VetoTime",1000,400);
+	gPad->SetGrid();
+	grMuonVetoFrac->GetXaxis()->SetTitle(xLabel);
+	grMuonVetoFrac->GetYaxis()->SetTitle("t_{veto}/t_{live}");
+	grMuonVetoFrac->GetXaxis()->SetTimeDisplay(1);
+	grMuonVetoFrac->GetXaxis()->SetTimeFormat("%m/%d");
+	grMuonVetoFrac->GetYaxis()->SetRangeUser(-0.001,0.1);
+	grMuonVetoFrac->Draw("AP");
+	grMayOn_2018->Draw("f");
+	grJuneOn_2018->Draw("f");
+	grJulyOn_2018->Draw("f");
+	grMuonVetoFrac->Draw("P");
+	grPileupVetoFrac->SetMarkerColor(kRed);
+	grPileupVetoFrac->Draw("P");	
+	leg = new TLegend(0.90,0.8,0.99,0.99);
+	leg->AddEntry(grMuonVetoFrac,"Muon","p");
+	leg->AddEntry(grPileupVetoFrac,"Pileup","p");
+	leg->Draw();
+	cVetoTime->SaveAs(Form("%s/VetoTimeVsTime.C",gSystem->Getenv("AD_AC227_PLOTS")));
+	cVetoTime->SaveAs(Form("%s/VetoTimeVsTime.png",gSystem->Getenv("AD_AC227_PLOTS")));
+	
+	
+	grRnPSDChiSq->SetMarkerStyle(22);
+	grRnPSDChiSq->SetMarkerSize(1.1);
+	grRnPSDChiSq->SetMarkerColor(kBlack);
+	grRnPSDChiSq->SetLineColor(kBlack);
+	grPoPSDChiSq->SetMarkerStyle(22);
+	grPoPSDChiSq->SetMarkerSize(1.1);
+	grPoPSDChiSq->SetMarkerColor(kRed);
+	grPoPSDChiSq->SetLineColor(kRed);
+
+	grRnEnChiSq->SetMarkerStyle(34);
+	grRnEnChiSq->SetMarkerSize(1.1);
+	grRnEnChiSq->SetMarkerColor(kBlack);
+	grRnEnChiSq->SetLineColor(kBlack);
+	grPoEnChiSq->SetMarkerStyle(34);
+	grPoEnChiSq->SetMarkerSize(1.1);
+	grPoEnChiSq->SetMarkerColor(kRed);
+	grPoEnChiSq->SetLineColor(kRed);
+
+	grDzChiSq->SetMarkerStyle(20);
+	grDzChiSq->SetMarkerSize(1.1);
+	grDzChiSq->SetMarkerColor(8);
+	grDzChiSq->SetLineColor(8);
+
+	grDtChiSq->SetMarkerStyle(21);
+	grDtChiSq->SetMarkerSize(1.1);
+	
+	TCanvas *cFitChiSq = new TCanvas("cFitChiSq","Fit Chisquared",1000,400);
+	gPad->SetGrid();
+	grRnPSDChiSq->GetXaxis()->SetTitle(xLabel);
+	grRnPSDChiSq->GetYaxis()->SetTitle("#Chi^{2}/NDF");
+	grRnPSDChiSq->GetXaxis()->SetTimeDisplay(1);
+	grRnPSDChiSq->GetXaxis()->SetTimeFormat("%m/%d");
+	grRnPSDChiSq->GetYaxis()->SetRangeUser(0,4);
+	grRnPSDChiSq->Draw("AP");
+	grMayOn_2018->Draw("f");
+	grJuneOn_2018->Draw("f");
+	grJulyOn_2018->Draw("f");
+	grRnPSDChiSq->Draw("P");
+	grPoPSDChiSq->Draw("P");
+	grRnEnChiSq->Draw("P");
+	grPoEnChiSq->Draw("P");
+	grDzChiSq->Draw("P");
+	grDtChiSq->Draw("P");	
+	leg = new TLegend(0.90,0.67,0.99,0.99);
+	leg->AddEntry(grRnPSDChiSq,"Prompt PSD","p");
+	leg->AddEntry(grPoPSDChiSq,"Delay PSD","p");
+	leg->AddEntry(grRnEnChiSq,"Prompt E","p");
+	leg->AddEntry(grPoEnChiSq,"Delay E","p");
+	leg->AddEntry(grDzChiSq,"Dz","p");
+	leg->AddEntry(grDtChiSq,"Dt","p");
+	leg->Draw();	
+	cFitChiSq->SaveAs(Form("%s/FitChiSqVsTime.C",gSystem->Getenv("AD_AC227_PLOTS")));
+	cFitChiSq->SaveAs(Form("%s/FitChiSqVsTime.png",gSystem->Getenv("AD_AC227_PLOTS")));
+	
+	TCanvas *cBGRate = new TCanvas("cBGRate","BG Rate",1000,400);
+	gPad->SetGrid();
+	grBGRate->GetXaxis()->SetTitle(xLabel);
+	grBGRate->GetYaxis()->SetTitle("BG Rate [Hz]");
+	grBGRate->GetXaxis()->SetTimeDisplay(1);
+	grBGRate->GetXaxis()->SetTimeFormat("%m/%d");
+	grBGRate->Draw("AP");
+	grMayOn_2018->Draw("f");
+	grJuneOn_2018->Draw("f");
+	grJulyOn_2018->Draw("f");
+	grBGRate->Draw("P");
+	cBGRate->SaveAs(Form("%s/BGRateVsTime.C",gSystem->Getenv("AD_AC227_PLOTS")));
+	cBGRate->SaveAs(Form("%s/BGRateVsTime.png",gSystem->Getenv("AD_AC227_PLOTS")));
+
+	//----------------------------------------------------
+	double grLifetimexStart, grLifetimexEnd, grLifetimeyStart, grLifetimeyEnd;
+	grLifetime->GetPoint(0,grLifetimexStart,grLifetimeyStart);
+	grLifetime->GetPoint(grLifetime->GetN()-1,grLifetimexEnd,grLifetimeyEnd);
+
+	TLine *lLifetime = new TLine(grLifetimexStart,2.569,grLifetimexEnd,2.569);
+	lLifetime->SetLineStyle(2);
+	lLifetime->SetLineColor(30);
+
+	TGraph *grlLifetime = new TGraph(4);
+	grlLifetime->SetPoint(0,grLifetimexStart,2.562);
+	grlLifetime->SetPoint(1,grLifetimexEnd,2.562);
+	grlLifetime->SetPoint(2,grLifetimexEnd,2.576);
+	grlLifetime->SetPoint(3,grLifetimexStart,2.576);
+	grlLifetime->SetFillStyle(3001);
+	grlLifetime->SetFillColor(30);
+	
+	TCanvas *cLifetime = new TCanvas("cLifetime","BG Rate",1000,400);
+	gPad->SetGrid();
+	grLifetime->GetXaxis()->SetTitle(xLabel);
+	grLifetime->GetYaxis()->SetTitle("#tau_{Po} [ms]");
+	grLifetime->GetXaxis()->SetTimeDisplay(1);
+	grLifetime->GetXaxis()->SetTimeFormat("%m/%d");
+	grLifetime->Draw("AP");
+	grMayOn_2018->Draw("f");
+	grJuneOn_2018->Draw("f");
+	grJulyOn_2018->Draw("f");
+	lLifetime->Draw("same");
+	grlLifetime->Draw("f");
+	grLifetime->Draw("P");
+	grLifetime->Fit("pol0");
+	grLifetime->GetFunction("pol0")->SetLineStyle(2);
+	pv = new TPaveText(0.85,0.8,0.99,0.99,"NDC");
+	pv->AddText(Form("#Chi^{2}/NDF   %.1f/%d",grLifetime->GetFunction("pol0")->GetChisquare(),grLifetime->GetFunction("pol0")->GetNDF()));	
+	pv->AddText(Form("Prob   %f",grLifetime->GetFunction("pol0")->GetProb()));
+	pv->AddText(Form("p0   %.3f #pm %.3f",grLifetime->GetFunction("pol0")->GetParameter(0),grLifetime->GetFunction("pol0")->GetParError(0)));
+	pv->Draw();
+	cLifetime->SaveAs(Form("%s/LifetimeVsTime.C",gSystem->Getenv("AD_AC227_PLOTS")));
+	cLifetime->SaveAs(Form("%s/LifetimeVsTime.png",gSystem->Getenv("AD_AC227_PLOTS")));
+
 } 	//end PlotRnPoVsTime

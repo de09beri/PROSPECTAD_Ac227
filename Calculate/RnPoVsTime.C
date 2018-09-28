@@ -40,7 +40,7 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 	//---------------------------------------------------------------------------------
 	TF1 *fRnPoDtExp;
 	TF1 *fRnPSDGaus, *fPoPSDGaus;
-	TF1 *fRnEnCB,    *fPoEnGaus;
+	TF1 *fRnEnGaus,  *fPoEnGaus;
 	TF1 *fRnPoDzGaus;
 
 	//---------------------------------------------------------------------------------
@@ -53,7 +53,16 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 	vector<double> vPoPosMean,  vPoPosMeanErr,  vPoPosSigma,  vPoPosSigmaErr;
 	vector<double> vRnPoDzMean, vRnPoDzMeanErr, vRnPoDzSigma, vRnPoDzSigmaErr;
 
-	vector<double> vTotLivetime, vPileupVetoT, vMuonVetoT;
+	vector<double> vTotLivetime,  vPileupVetoT,     vMuonVetoT;
+	vector<double> vPileupVetoFrac, vMuonVetoFrac;
+	
+	vector<double> vPromptEnEff,  vPromptEnEffErr,  vDelayEnEff,  vDelayEnEffErr;
+	vector<double> vPromptPSDEff, vPromptPSDEffErr, vDelayPSDEff, vDelayPSDEffErr; 
+	vector<double> vDzEff, 	      vDzEffErr;
+
+	vector<double> vRnPSDChiSq, vPoPSDChiSq, vRnEnChiSq, vPoEnChiSq, vDzChiSq, vDtChiSq;
+
+	vector<double> vBGRate;
 
 	//---------------------------------------------------------------------------------
 	RNPO *rnpo = new RNPO();
@@ -254,15 +263,21 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 		printf("Time bin: %i  |  Livetime: %f hrs \n",numTimeBin,livetime*(2.778e-7));
 		printf("Pileup veto correction: %f \n",pileupVetoCorr);
 
-		vTotLivetime.push_back(livetime);
-		vPileupVetoT.push_back(pileupVetoTime);
-		vMuonVetoT.push_back(muonVetoTime);
+		vTotLivetime.push_back(livetime/(1000.0*60.0));		//minutes
+		vPileupVetoT.push_back(pileupVetoTime/(1000.0*60.0));	//minutes
+		vMuonVetoT.push_back(muonVetoTime/(1000.0*60.0));	//minutes
+
+		vPileupVetoFrac.push_back(pileupVetoTime/livetime);
+		vMuonVetoFrac.push_back(muonVetoTime/livetime);
 
 		livetime = livetime - 2.0*muonVetoTime;
 		livetime = livetime*(1-pileupVetoCorr);
 		vLivetime.push_back(livetime);
 
 		printf("Corrected Livetime: %f hours \n",livetime*(2.778e-7));
+
+		double BGRate = (hBGDt->GetEntries()/livetime)*(1e3);	//Hz
+		vBGRate.push_back(BGRate);
 
 		//---------------------------------------------------------------------------------
 		//Subtract histograms
@@ -334,7 +349,7 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 		double totEff, totEffErr;
 
 		double NAlpha, NAlphaErr, lifetime, lifetimeErr;
-		double rate, rateErr;
+		double rate, rateErr;		
 
 		//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		//Fit distributions
@@ -342,25 +357,29 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 		fRnPoDtExp->SetParameter(1,POLIFETIME);
 		hRnPoDt->Fit(fRnPoDtExp,"RQ0");
 
-		double fitPSDMin = 0.20;
-		fRnPSDGaus = new TF1("fRnPSDGaus","gaus",fitPSDMin,PSDMax);
+		double fitPSDMin = promptLowPSDCut;
+		double maxValue = hRnPSD->GetMaximum(), maxBin = hRnPSD->GetBinCenter(hRnPSD->GetMaximumBin());	
+		fRnPSDGaus = new TF1("fRnPSDGaus","gaus(0)+gaus(3)",fitPSDMin,PSDMax);
+		fRnPSDGaus->SetParameters(0.25*maxValue,maxBin+0.01,0.015,0.75*maxValue,maxBin-0.001,0.02);
+		fRnPSDGaus->SetParLimits(0,0,maxValue);
+		fRnPSDGaus->SetParLimits(3,0,maxValue);
 		hRnPSD->Fit(fRnPSDGaus,"RQ0");
 		fRnPSDGaus->SetRange(PSDMin,PSDMax);
 
+		fitPSDMin = delayLowPSDCut;
 		fPoPSDGaus = new TF1("fPoPSDGaus","gaus",fitPSDMin,PSDMax);
 		hPoPSD->Fit(fPoPSDGaus,"RQ0");
 		fPoPSDGaus->SetRange(PSDMin,PSDMax);
 	
-		double fitRnEnMin = 0.57;	
-		fRnEnCB = new TF1("fRnEnCB","crystalball",fitRnEnMin,EnMax);
-		fRnEnCB->SetParameter(1,0.7);
-		fRnEnCB->SetParameter(2,0.04);
-		fRnEnCB->SetParameter(3,-1.7);
-		fRnEnCB->SetParameter(4,1.2);
-		hRnEn->Fit(fRnEnCB,"RQ0");
-		fRnEnCB->SetRange(EnMin,EnMax);
+		double fitRnEnMin = EnMin;	
+		fRnEnGaus = new TF1("fRnEnGaus","gaus(0)+gaus(3)+gaus(6)",fitRnEnMin,EnMax);
+		maxValue = hRnEn->GetMaximum();
+		maxBin = hRnEn->GetBinCenter(hRnEn->GetMaximumBin());	
+		fRnEnGaus->SetParameters(0.8*maxValue,maxBin,0.035,0.05*maxValue,maxBin+0.14,0.08,0.15*maxValue,maxBin-0.03,0.05);
+		hRnEn->Fit(fRnEnGaus,"RQ0");
+		fRnEnGaus->SetRange(EnMin,EnMax);
 
-		double fitPoEnMin = 0.7;
+		double fitPoEnMin = delayLowEnCut;
 		fPoEnGaus = new TF1("fPoEnGaus","gaus",fitPoEnMin,EnMax);
 		hPoEn->Fit(fPoEnGaus,"RQ0");
 		fPoEnGaus->SetRange(EnMin,EnMax);
@@ -376,7 +395,7 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 		delayPSDEff = fPoPSDGaus->Integral(delayLowPSDCut,delayHighPSDCut)/fPoPSDGaus->Integral(PSDMin,PSDMax);
 		delayPSDEffErr = sqrt((delayPSDEff*(1-delayPSDEff))/hPoPSD->GetEntries()); 
 		
-		promptEnEff = fRnEnCB->Integral(promptLowEnCut,promptHighEnCut)/fRnEnCB->Integral(EnMin,EnMax);
+		promptEnEff = fRnEnGaus->Integral(promptLowEnCut,promptHighEnCut)/fRnEnGaus->Integral(EnMin,EnMax);
 		promptEnEffErr = sqrt((promptEnEff*(1-promptEnEff))/hRnEn->GetEntries());
 
 		delayEnEff = fPoEnGaus->Integral(delayLowEnCut,delayHighEnCut)/fPoEnGaus->Integral(EnMin,EnMax);
@@ -430,6 +449,29 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 		vRnPoDzSigma.push_back(fRnPoDzGaus->GetParameter(2));
 		vRnPoDzSigmaErr.push_back(fRnPoDzGaus->GetParError(2));
 
+		vPromptEnEff.push_back(promptEnEff);
+		vPromptEnEffErr.push_back(promptEnEffErr);
+		vDelayEnEff.push_back(delayEnEff);
+		vDelayEnEffErr.push_back(delayEnEffErr);
+
+		vPromptPSDEff.push_back(promptPSDEff);
+		vPromptPSDEffErr.push_back(promptPSDEffErr);
+		vDelayPSDEff.push_back(delayPSDEff);
+		vDelayPSDEffErr.push_back(delayPSDEffErr);
+
+		vDzEff.push_back(dzEff);
+		vDzEffErr.push_back(dzEffErr);			
+
+		vRnPSDChiSq.push_back(fRnPSDGaus->GetChisquare()/(double)fRnPSDGaus->GetNDF());
+		vPoPSDChiSq.push_back(fPoPSDGaus->GetChisquare()/(double)fPoPSDGaus->GetNDF());
+	
+		vRnEnChiSq.push_back(fRnEnGaus->GetChisquare()/(double)fRnEnGaus->GetNDF());
+		vPoEnChiSq.push_back(fPoEnGaus->GetChisquare()/(double)fPoEnGaus->GetNDF());
+		
+		vDzChiSq.push_back(fRnPoDzGaus->GetChisquare()/(double)fRnPoDzGaus->GetNDF());	
+	
+		vDtChiSq.push_back(fRnPoDtExp->GetChisquare()/(double)fRnPoDtExp->GetNDF());
+
 		numTimeBin++;
 	}	//end while loop IDX < numEntries
 
@@ -457,10 +499,27 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 	TGraphErrors *grRnPoDzMean 	= new TGraphErrors(numPt,x,y,xErr,yErr);
 	TGraphErrors *grRnPoDzSigma 	= new TGraphErrors(numPt,x,y,xErr,yErr);
 
-	TGraph *grLivetime 	= new TGraph(numPt,x,y);
-	TGraph *grTotLivetime 	= new TGraph(numPt,x,y);
-	TGraph *grPileupVeto	= new TGraph(numPt,x,y);
-	TGraph *grMuonVeto	= new TGraph(numPt,x,y);
+	TGraph *grLivetime 	 = new TGraph(numPt,x,y);
+	TGraph *grTotLivetime 	 = new TGraph(numPt,x,y);
+	TGraph *grPileupVeto	 = new TGraph(numPt,x,y);
+	TGraph *grMuonVeto	 = new TGraph(numPt,x,y);
+	TGraph *grPileupVetoFrac = new TGraph(numPt,x,y);
+	TGraph *grMuonVetoFrac	 = new TGraph(numPt,x,y);
+
+	TGraphErrors *grPromptEnEff  = new TGraphErrors(numPt,x,y,xErr,yErr);
+	TGraphErrors *grDelayEnEff   = new TGraphErrors(numPt,x,y,xErr,yErr);
+	TGraphErrors *grPromptPSDEff = new TGraphErrors(numPt,x,y,xErr,yErr);
+	TGraphErrors *grDelayPSDEff  = new TGraphErrors(numPt,x,y,xErr,yErr);
+	TGraphErrors *grDzEff 	     = new TGraphErrors(numPt,x,y,xErr,yErr);
+
+	TGraph *grRnPSDChiSq = new TGraph(numPt,x,y);
+	TGraph *grPoPSDChiSq = new TGraph(numPt,x,y);
+	TGraph *grRnEnChiSq  = new TGraph(numPt,x,y);
+	TGraph *grPoEnChiSq  = new TGraph(numPt,x,y);
+	TGraph *grDzChiSq    = new TGraph(numPt,x,y);
+	TGraph *grDtChiSq    = new TGraph(numPt,x,y);
+
+	TGraph *grBGRate = new TGraph(numPt,x,y);
 
 	//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	//Fill TGraphs
@@ -505,7 +564,34 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 		grTotLivetime->SetPoint(i,time,vTotLivetime[i]);
 		grPileupVeto->SetPoint(i,time,vPileupVetoT[i]);
 		grMuonVeto->SetPoint(i,time,vMuonVetoT[i]);
-	
+		grPileupVetoFrac->SetPoint(i,time,vPileupVetoFrac[i]);
+		grMuonVetoFrac->SetPoint(i,time,vMuonVetoFrac[i]);
+
+		grPromptEnEff->SetPoint(i,time,vPromptEnEff[i]);
+		grPromptEnEff->SetPointError(i,0,vPromptEnEffErr[i]);
+
+		grDelayEnEff->SetPoint(i,time,vDelayEnEff[i]);
+		grDelayEnEff->SetPointError(i,0,vDelayEnEffErr[i]);
+
+		grPromptPSDEff->SetPoint(i,time,vPromptPSDEff[i]);
+		grPromptPSDEff->SetPointError(i,0,vPromptPSDEffErr[i]);
+
+		grDelayPSDEff->SetPoint(i,time,vDelayPSDEff[i]);
+		grDelayPSDEff->SetPointError(i,0,vDelayPSDEffErr[i]);
+
+		grDzEff->SetPoint(i,time,vDzEff[i]);
+		grDzEff->SetPointError(i,0,vDzEffErr[i]);	
+
+		
+		grRnPSDChiSq->SetPoint(i,time,vRnPSDChiSq[i]);
+		grPoPSDChiSq->SetPoint(i,time,vPoPSDChiSq[i]);
+		grRnEnChiSq->SetPoint(i,time,vRnEnChiSq[i]);
+		grPoEnChiSq->SetPoint(i,time,vPoEnChiSq[i]);
+		grDzChiSq->SetPoint(i,time,vDzChiSq[i]);
+		grDtChiSq->SetPoint(i,time,vDtChiSq[i]);
+
+		grBGRate->SetPoint(i,time,vBGRate[i]);
+
 	}	//end for loop to populate TGraphs
 
 	//---------------------------------------------------------------------------------
@@ -527,7 +613,20 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 	grTotLivetime->Write("grTotLivetime");
 	grPileupVeto->Write("grPileupVeto");
 	grMuonVeto->Write("grMuonVeto");
-
+	grPileupVetoFrac->Write("grPileupVetoFrac");
+	grMuonVetoFrac->Write("grMuonVetoFrac");
+	grPromptEnEff->Write("grPromptEnEff");
+	grDelayEnEff->Write("grDelayEnEff");
+	grPromptPSDEff->Write("grPromptPSDEff");
+	grDelayPSDEff->Write("grDelayPSDEff");
+	grDzEff->Write("grDzEff");
+	grRnPSDChiSq->Write("grRnPSDChiSq");
+	grPoPSDChiSq->Write("grPoPSDChiSq");
+	grRnEnChiSq->Write("grRnEnChiSq");
+	grPoEnChiSq->Write("grPoEnChiSq");
+	grDzChiSq->Write("grDzChiSq");
+	grDtChiSq->Write("grDtChiSq");
+	grBGRate->Write("grBGRate");
 
 	graphFile->Close();
 
