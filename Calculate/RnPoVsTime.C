@@ -141,8 +141,8 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 		double lastTime = 0.0, lastRunTime = 0.0, lastTimestamp = 0.0;	
 		double sumWeightedTimestamp = 0.0, sumRunTime = 0.0;
 
-		double lastOCSTime = 0.0, OCSTime = 0.0;
-		double lastMuonVetoTime = 0.0, muonVetoTime = 0.0;
+//		double lastOCSTime = 0.0, OCSTime = 0.0;
+//		double lastMuonVetoTime = 0.0, muonVetoTime = 0.0;
 
 		double lastNumClusts = 0.0, numClusts = 0.0;
 
@@ -156,7 +156,7 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 			if(rnpo->d_t < lastTime){ 
 				livetime += lastTime*(1e-6);		//livetime in ms	
 
-				muonVetoTime += lastMuonVetoTime*(1e-6);
+//				muonVetoTime += lastMuonVetoTime*(1e-6);
 	
 				sumWeightedTimestamp += lastRunTime * ((lastRunTime/2.0)+lastTimestamp);
 				sumRunTime += lastRunTime;
@@ -174,7 +174,7 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 			}
 
 			lastTime = rnpo->d_t;
-			lastMuonVetoTime = rnpo->muonVeto_t;
+//			lastMuonVetoTime = rnpo->muonVeto_t;
 			lastRunTime = ((TVectorD*)rnpo->fChain->GetCurrentFile()->Get("runtime"))->Norm1();		//seconds
 			lastTimestamp = rnpo->tstamp;			//epoch seconds	
 			lastNumClusts = rnpo->numClust;
@@ -186,7 +186,7 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 				//if livetime is less than 12 hours 
 				if(livetime*(2.778e-7) < 12) goto endloop;
 
-				muonVetoTime += lastMuonVetoTime*(1e-6);
+//				muonVetoTime += lastMuonVetoTime*(1e-6);
 	
 				sumWeightedTimestamp += lastRunTime * ((lastRunTime/2.0)+lastTimestamp);
 				sumRunTime += lastRunTime;
@@ -203,22 +203,23 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 			//Fill histograms
 
 			seg = rnpo->d_seg;
-
+/*
 			double rnpo_p_E = rnpo->p_ESmear;	
 			double rnpo_d_E = rnpo->d_ESmear;
 			double rnpo_f_E = rnpo->f_ESmear;
-/*
+*/
 			double rnpo_p_E = rnpo->p_E;	
 			double rnpo_d_E = rnpo->d_E;
 			double rnpo_f_E = rnpo->f_E;
-*/
+
 			exclude = find(begin(ExcludeCellArr), end(ExcludeCellArr), seg) != end(ExcludeCellArr);
 			if(exclude) continue;
 
-			if(rnpo->d_PSD < delayLowPSDCut || rnpo_d_E < delayLowEnCut) continue;	
+			if(rnpo->d_PSD < delayLowPSDCut || rnpo->d_E < delayLowEnCut) continue;	
 			if(rnpo->d_z < zLow || rnpo->d_z > zHigh) continue;
 
-			if(rnpo->p_seg > -1 && rnpo->p_PSD>promptLowPSDCut && rnpo_p_E>promptLowEnCut && rnpo->p_z>zLow && rnpo->p_z<zHigh){	
+			dt = (rnpo->d_t - rnpo->p_t)*(1e-6);	//convert ns to ms	
+			if(rnpo->p_seg > -1 && rnpo->p_PSD>promptLowPSDCut && rnpo->p_E>promptLowEnCut && rnpo->p_z>zLow && rnpo->p_z<zHigh && dt>0.0){	
 				dt = (rnpo->d_t - rnpo->p_t)*(1e-6);	//convert ns to ms	
 				dz = rnpo->d_z - rnpo->p_z;
 
@@ -236,7 +237,8 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 				hSelectPSDvsEn->Fill(rnpo_d_E,rnpo->d_PSD);
 				hSelectDelayEnvsPromptEn->Fill(rnpo_p_E,rnpo_d_E);		
 			}
-			if(rnpo->f_seg > -1 && rnpo->f_PSD>promptLowPSDCut && rnpo_f_E>promptLowEnCut && rnpo->f_z>zLow && rnpo->f_z<zHigh){	
+			dt = (rnpo->f_t - rnpo->d_t)*(1e-6) - TIMEOFFSET;	
+			if(rnpo->f_seg > -1 && rnpo->f_PSD>promptLowPSDCut && rnpo->f_E>promptLowEnCut && rnpo->f_z>zLow && rnpo->f_z<zHigh && dt>0.0){	
 				dt = (rnpo->f_t - rnpo->d_t)*(1e-6) - TIMEOFFSET;	
 				dz = rnpo->d_z - rnpo->f_z;
 
@@ -258,20 +260,19 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 		}	//end for loop over events
 
 		double pileupVetoTime = numClusts*pileupVetoT;	//[ms]
-		double pileupVetoCorr = (2.0*pileupVetoTime)/(livetime);
 
 		printf("Time bin: %i  |  Livetime: %f hrs \n",numTimeBin,livetime*(2.778e-7));
-		printf("Pileup veto correction: %f \n",pileupVetoCorr);
+		printf("Pileup veto time: %f \n ms",pileupVetoTime);
 
 		vTotLivetime.push_back(livetime/(1000.0*60.0));		//minutes
 		vPileupVetoT.push_back(pileupVetoTime/(1000.0*60.0));	//minutes
-		vMuonVetoT.push_back(muonVetoTime/(1000.0*60.0));	//minutes
+//		vMuonVetoT.push_back(muonVetoTime/(1000.0*60.0));	//minutes
 
 		vPileupVetoFrac.push_back(pileupVetoTime/livetime);
-		vMuonVetoFrac.push_back(muonVetoTime/livetime);
+//		vMuonVetoFrac.push_back(muonVetoTime/livetime);
 
-		livetime = livetime - 2.0*muonVetoTime;
-		livetime = livetime*(1-pileupVetoCorr);
+//		livetime = livetime - 2.0*muonVetoTime;
+		livetime = livetime - 2.0*pileupVetoTime;
 		vLivetime.push_back(livetime);
 
 		printf("Corrected Livetime: %f hours \n",livetime*(2.778e-7));
@@ -353,9 +354,10 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 
 		//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		//Fit distributions
-		fRnPoDtExp = new TF1("fRnPoDtExp",Form("[0]*exp(-x/[1])*(%f/[1])",dtBinWidth),dtBinWidth*dtFit,dtMax);
+		fRnPoDtExp = new TF1("fRnPoDtExp",Form("[0]*exp(-x/[1])*(%f/[1])",dtBinWidth),0.0,dtMax);
+		//fRnPoDtExp = new TF1("fRnPoDtExp",Form("[0]*exp(-x/[1])*(%f/[1])",dtBinWidth),0.5,11);
 		fRnPoDtExp->SetParameter(1,POLIFETIME);
-		hRnPoDt->Fit(fRnPoDtExp,"RQ0");
+		hRnPoDt->Fit(fRnPoDtExp,"R0");
 
 		double fitPSDMin = promptLowPSDCut;
 		double maxValue = hRnPSD->GetMaximum(), maxBin = hRnPSD->GetBinCenter(hRnPSD->GetMaximumBin());	
@@ -414,7 +416,8 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 		NAlphaErr = fRnPoDtExp->GetParError(0);
 		lifetime = fRnPoDtExp->GetParameter(1);
 		lifetimeErr = fRnPoDtExp->GetParError(1);
-
+//		lifetimeErr = 0.007;
+	
 		rate = (NAlpha/(livetime*totEff))*(1e3);		//Hz
 		rateErr = rate * sqrt(pow(NAlphaErr/NAlpha,2) + pow(totEffErr/totEff,2));
 
@@ -502,9 +505,9 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 	TGraph *grLivetime 	 = new TGraph(numPt,x,y);
 	TGraph *grTotLivetime 	 = new TGraph(numPt,x,y);
 	TGraph *grPileupVeto	 = new TGraph(numPt,x,y);
-	TGraph *grMuonVeto	 = new TGraph(numPt,x,y);
+//	TGraph *grMuonVeto	 = new TGraph(numPt,x,y);
 	TGraph *grPileupVetoFrac = new TGraph(numPt,x,y);
-	TGraph *grMuonVetoFrac	 = new TGraph(numPt,x,y);
+//	TGraph *grMuonVetoFrac	 = new TGraph(numPt,x,y);
 
 	TGraphErrors *grPromptEnEff  = new TGraphErrors(numPt,x,y,xErr,yErr);
 	TGraphErrors *grDelayEnEff   = new TGraphErrors(numPt,x,y,xErr,yErr);
@@ -563,9 +566,9 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 		grLivetime->SetPoint(i,time,vLivetime[i]);
 		grTotLivetime->SetPoint(i,time,vTotLivetime[i]);
 		grPileupVeto->SetPoint(i,time,vPileupVetoT[i]);
-		grMuonVeto->SetPoint(i,time,vMuonVetoT[i]);
+//		grMuonVeto->SetPoint(i,time,vMuonVetoT[i]);
 		grPileupVetoFrac->SetPoint(i,time,vPileupVetoFrac[i]);
-		grMuonVetoFrac->SetPoint(i,time,vMuonVetoFrac[i]);
+//		grMuonVetoFrac->SetPoint(i,time,vMuonVetoFrac[i]);
 
 		grPromptEnEff->SetPoint(i,time,vPromptEnEff[i]);
 		grPromptEnEff->SetPointError(i,0,vPromptEnEffErr[i]);
@@ -612,9 +615,9 @@ void RnPoVsTime(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 	grLivetime->Write("grLivetime");
 	grTotLivetime->Write("grTotLivetime");
 	grPileupVeto->Write("grPileupVeto");
-	grMuonVeto->Write("grMuonVeto");
+//	grMuonVeto->Write("grMuonVeto");
 	grPileupVetoFrac->Write("grPileupVetoFrac");
-	grMuonVetoFrac->Write("grMuonVetoFrac");
+//	grMuonVetoFrac->Write("grMuonVetoFrac");
 	grPromptEnEff->Write("grPromptEnEff");
 	grDelayEnEff->Write("grDelayEnEff");
 	grPromptPSDEff->Write("grPromptPSDEff");

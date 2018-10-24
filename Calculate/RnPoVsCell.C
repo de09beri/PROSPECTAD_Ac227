@@ -167,12 +167,12 @@ void RnPoVsCell(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 	double livetime = 0.0;
 	double lastTime = 0.0;
 
-	double OCSTime = 0.0;
+/*	double OCSTime = 0.0;
 	double lastOCSTime = 0.0;
 
 	double muonVetoTime = 0.0;
 	double lastMuonVetoTime = 0.0;
-
+*/
 	double lastNumClusts = 0.0, numClusts = 0.0;
 	double lastRuntime = 0.0, totRuntime = 0.0;
 
@@ -184,38 +184,39 @@ void RnPoVsCell(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 
 		if(rnpo->d_t < lastTime){ 
 			livetime += lastTime*(1e-6);		//livetime in ms	
-			muonVetoTime += lastMuonVetoTime*(1e-6);
+//			muonVetoTime += lastMuonVetoTime*(1e-6);
 			totRuntime += lastRuntime;
 			numClusts += lastNumClusts;
 		}
 		lastTime = rnpo->d_t;
-		lastMuonVetoTime = rnpo->muonVeto_t;
+//		lastMuonVetoTime = rnpo->muonVeto_t;
 		lastNumClusts = rnpo->numClust;
 		lastRuntime = ((TVectorD*)rnpo->fChain->GetCurrentFile()->Get("runtime"))->Norm1();	//[s]	
 
 		seg = rnpo->d_seg;
 
-
+/*
 		double rnpo_p_E = rnpo->p_ESmear;	
 		double rnpo_d_E = rnpo->d_ESmear;
 		double rnpo_f_E = rnpo->f_ESmear;
-/*
+*/
 
 		double rnpo_p_E = rnpo->p_E;	
 		double rnpo_d_E = rnpo->d_E;
 		double rnpo_f_E = rnpo->f_E;
-*/
-		if(rnpo->d_PSD < delayLowPSDCut || rnpo_d_E < delayLowEnCut) continue;
+
+		if(rnpo->d_PSD < delayLowPSDCut || rnpo->d_E < delayLowEnCut) continue;
 		if(rnpo->d_z < zLow || rnpo->d_z > zHigh) continue;
 
-		if((rnpo->p_PSD>promptLowPSDCut && rnpo_p_E>promptLowEnCut) || (rnpo->f_PSD>promptLowPSDCut && rnpo_f_E>promptLowEnCut)) hCell_tstamp[seg]->Fill(rnpo->tstamp);
+		if((rnpo->p_PSD>promptLowPSDCut && rnpo->p_E>promptLowEnCut) || (rnpo->f_PSD>promptLowPSDCut && rnpo->f_E>promptLowEnCut)) hCell_tstamp[seg]->Fill(rnpo->tstamp);
 
 		exclude = find(begin(ExcludeCellArr), end(ExcludeCellArr), seg) != end(ExcludeCellArr);
 		if(exclude) continue;
 
 
 		//if prompt-delay pair
-		if(rnpo->p_seg > -1 && rnpo->p_PSD>promptLowPSDCut && rnpo_p_E>promptLowEnCut && rnpo->p_z>zLow && rnpo->p_z<zHigh){
+		dt = (rnpo->d_t - rnpo->p_t)*(1e-6);	//convert ns to ms	
+		if(rnpo->p_seg > -1 && rnpo->p_PSD>promptLowPSDCut && rnpo->p_E>promptLowEnCut && rnpo->p_z>zLow && rnpo->p_z<zHigh && dt > 0.0){
 			hSelectSeg->Fill(rnpo->d_seg);		
 			
 			dt = (rnpo->d_t - rnpo->p_t)*(1e-6);	//convert ns to ms	
@@ -242,7 +243,8 @@ void RnPoVsCell(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 		}
 
 		//if prompt-delay BG pair
-		if(rnpo->f_seg > -1 && rnpo->f_PSD>promptLowPSDCut && rnpo_f_E>promptLowEnCut && rnpo->f_z>zLow && rnpo->f_z<zHigh){
+		dt = (rnpo->f_t - rnpo->d_t)*(1e-6) - TIMEOFFSET;
+		if(rnpo->f_seg > -1 && rnpo->f_PSD>promptLowPSDCut && rnpo->f_E>promptLowEnCut && rnpo->f_z>zLow && rnpo->f_z<zHigh && dt > 0.0){
 			hBGSeg->Fill(rnpo->d_seg);
 		
 			dt = (rnpo->f_t - rnpo->d_t)*(1e-6) - TIMEOFFSET;
@@ -270,22 +272,20 @@ void RnPoVsCell(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 
 
 	livetime += lastTime*(1e-6);	//add time from last tree
-	muonVetoTime += lastMuonVetoTime*(1e-6);
+//	muonVetoTime += lastMuonVetoTime*(1e-6);
 	totRuntime += lastRuntime;
 	numClusts += lastNumClusts;
 
 	double pileupVetoTime = numClusts*pileupVetoT;	//[ms]
-	double pileupVetoCorr = (2.0*pileupVetoTime)/livetime;
 
 	printf("Total runtime: %f hours \n",totRuntime/(60.0*60.0));
 	printf("Livetime: %f hours \n",livetime*(2.778e-7));
 
-	printf("Muon veto time: %f ms \n",muonVetoTime);
+//	printf("Muon veto time: %f ms \n",muonVetoTime);
 	printf("Pileup veto time: %f ms \n",pileupVetoTime);
-	printf("Pileup veto correction: %f \n",pileupVetoCorr);
 
-	livetime = livetime - (2.0*muonVetoTime);
-	livetime = livetime * (1-pileupVetoCorr);
+//	livetime = livetime - (2.0*muonVetoTime);
+	livetime = livetime - (2.0*pileupVetoTime);
 	printf("Corrected Livetime: %f hours \n",livetime*(2.778e-7));
 
 //\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
@@ -395,9 +395,10 @@ void RnPoVsCell(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 
 	//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	//Fit distributions
-		fRnPoDtExp = new TF1("fRnPoDtExp",Form("[0]*exp(-x/[1])*(%f/[1])",dtBinWidth),dtBinWidth*dtFit,dtMax);
+		fRnPoDtExp = new TF1("fRnPoDtExp",Form("[0]*exp(-x/[1])*(%f/[1])",dtBinWidth),0.0,dtMax);
+		//fRnPoDtExp = new TF1("fRnPoDtExp",Form("[0]*exp(-x/[1])*(%f/[1])",dtBinWidth),0.5,11);
 		fRnPoDtExp->SetParameter(1,POLIFETIME);
-		hRnPoDt[i]->Fit(fRnPoDtExp,"RQ0");	
+		hRnPoDt[i]->Fit(fRnPoDtExp,"R0");	
 
 		double fitPSDMin = promptLowPSDCut;
 		double maxValue = hRnPSD[i]->GetMaximum(), maxBin = hRnPSD[i]->GetBinCenter(hRnPSD[i]->GetMaximumBin());	
