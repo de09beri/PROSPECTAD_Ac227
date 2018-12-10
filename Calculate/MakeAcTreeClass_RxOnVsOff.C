@@ -13,8 +13,7 @@ int MakeAcTreeClass(int RxStatus){
 	clock_t tStart = clock();	
 	
 	ifstream file;
-	//file.open("/g/g20/berish1/AD_Ac227Analysis/PROSPECTAD_Ac227/Calculate/NuFact18_GoodRuns_RxStatus.txt", ifstream::in);
-	file.open("/g/g20/berish1/AD_Ac227Analysis/PROSPECTAD_Ac227/Calculate/2018A_AllRuns_RxStatus.txt", ifstream::in);
+	file.open("/g/g20/berish1/AD_Ac227Analysis/PROSPECTAD_Ac227/Calculate/2018C_GoodRuns_RxStatus.txt", ifstream::in);
 	
 	if(!(file.is_open() && file.good())){
 		printf("Good runs file not found. Exiting. \n");

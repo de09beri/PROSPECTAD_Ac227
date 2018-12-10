@@ -19,19 +19,21 @@
 
 #include "Header.C"
 
-void CutsVsTime(double zLow, double zHigh, double timeBin){
+void CutsVsTime(double dtCut, double timeBin){
 
 	const double TIMEBREAK = timeBin*(3.6e6);	//[ms]
 	
-	ofstream cutFile("CutParameterVsTime.txt");
+	ofstream cutFile("/g/g20/berish1/AD_Ac227Analysis/PROSPECTAD_Ac227/Calculate/CutParameterVsTime.txt");
 
 	//---------------------------------------------------------------------------------
 	TH1F *hSelectPromptPSD, *hBGPromptPSD, *hRnPSD,	 *hSelectDelayPSD, *hBGDelayPSD, *hPoPSD;
 	TH1F *hSelectPromptEn,  *hBGPromptEn,  *hRnEn,   *hSelectDelayEn,  *hBGDelayEn,  *hPoEn;
+	TH1F *hSelectDz,        *hBGDz,        *hRnPoDz;
 
 	//---------------------------------------------------------------------------------
 	TF1 *fRnPSDGaus, *fPoPSDGaus;
 	TF1 *fRnEnGaus,  *fPoEnGaus;
+	TF1 *fRnPoDzGaus;
 
 	//---------------------------------------------------------------------------------
 	RNPO *rnpo = new RNPO();
@@ -77,6 +79,9 @@ void CutsVsTime(double zLow, double zHigh, double timeBin){
 	
 		hSelectDelayEn 		= new TH1F(Form("hSelectDelayEn_%i",numTimeBin),";Energy [MeVee];Counts/5 keV",numEnBins,EnMin,EnMax);	
 		hBGDelayEn 		= new TH1F(Form("hBGDelayEn_%i",numTimeBin),";Energy [MeVee];Counts/5 keV",numEnBins,EnMin,EnMax);	
+
+		hSelectDz 		= new TH1F(Form("hSelectDz_%i",numTimeBin),";z_{Po} - z_{Rn} [mm];Counts/0.25 cm",numDzBins,dzMin,dzMax);
+		hBGDz 			= new TH1F(Form("hBGDz_%i",numTimeBin),";z_{Po} - z_{Rn} [mm];Counts/0.25 cm",numDzBins,dzMin,dzMax);
 
 		//---------------------------------------------------------------------------------
 		//Fill histograms
@@ -133,11 +138,7 @@ void CutsVsTime(double zLow, double zHigh, double timeBin){
 			//Fill histograms
 
 			seg = rnpo->d_seg;
-/*
-			double rnpo_p_E = rnpo->p_ESmear;	
-			double rnpo_d_E = rnpo->d_ESmear;
-			double rnpo_f_E = rnpo->f_ESmear;
-*/
+
 			double rnpo_p_E = rnpo->p_E;	
 			double rnpo_d_E = rnpo->d_E;
 			double rnpo_f_E = rnpo->f_E;
@@ -146,21 +147,24 @@ void CutsVsTime(double zLow, double zHigh, double timeBin){
 			if(exclude) continue;
 
 			if(rnpo->d_PSD < delayLowPSDCut || rnpo->d_E < delayLowEnCut) continue;	
-			if(rnpo->d_z < zLow || rnpo->d_z > zHigh) continue;
 
 			dt = (rnpo->d_t - rnpo->p_t)*(1e-6);	//convert ns to ms	
-			if(rnpo->p_seg > -1 && rnpo->p_PSD>promptLowPSDCut && rnpo->p_E>promptLowEnCut && rnpo->p_z>zLow && rnpo->p_z<zHigh && dt>0.5){	
+			if(rnpo->p_seg > -1 && rnpo->p_PSD>promptLowPSDCut && rnpo->p_E>promptLowEnCut && dt>dtCut){	
+				dz = rnpo->d_z - rnpo->p_z;
 				hSelectPromptPSD->Fill(rnpo->p_PSD);
 				hSelectDelayPSD->Fill(rnpo->d_PSD);
 				hSelectPromptEn->Fill(rnpo_p_E);
 				hSelectDelayEn->Fill(rnpo_d_E);
+				hSelectDz->Fill(dz);
 			}
 			dt = (rnpo->f_t - rnpo->d_t)*(1e-6) - TIMEOFFSET;	
-			if(rnpo->f_seg > -1 && rnpo->f_PSD>promptLowPSDCut && rnpo->f_E>promptLowEnCut && rnpo->f_z>zLow && rnpo->f_z<zHigh && dt>0.5){	
+			if(rnpo->f_seg > -1 && rnpo->f_PSD>promptLowPSDCut && rnpo->f_E>promptLowEnCut && dt>dtCut){	
+				dz = rnpo->d_z - rnpo->f_z;
 				hBGPromptPSD->Fill(rnpo->f_PSD);
 				hBGDelayPSD->Fill(rnpo->d_PSD);
 				hBGPromptEn->Fill(rnpo_f_E);
 				hBGDelayEn->Fill(rnpo_d_E);
+				hBGDz->Fill(dz);
 			}
 
 		}	//end for loop over events
@@ -191,12 +195,18 @@ void CutsVsTime(double zLow, double zHigh, double timeBin){
 		hPoEn->Sumw2();
 		hPoEn->Add(hBGDelayEn,-1);
 	
+		hRnPoDz = (TH1F*)hSelectDz->Clone();
+		hRnPoDz->SetName(Form("hRnPoDz_%i",numTimeBin));
+		hRnPoDz->Sumw2();
+		hRnPoDz->Add(hBGDz,-1);
+
 		//---------------------------------------------------------------------------------
 		//Fit Histograms
 		printf("=============== Fitting Histograms =============== \n"); 
 
 		double RnPSD, RnPSDSigma, PoPSD, PoPSDSigma;
 		double RnEn,  RnEnSigma,  PoEn,  PoEnSigma;
+		double RnPoDz, RnPoDzSigma;
 
 		double RnPSDMaxBin = hRnPSD->GetBinCenter(hRnPSD->GetMaximumBin());
 		fRnPSDGaus = new TF1("fRnPSDGaus","gaus",RnPSDMaxBin-0.02,RnPSDMaxBin+0.02);
@@ -221,9 +231,14 @@ void CutsVsTime(double zLow, double zHigh, double timeBin){
 		hPoEn->Fit(fPoEnGaus,"RQ");
 		PoEn = fPoEnGaus->GetParameter(1);
 		PoEnSigma = fPoEnGaus->GetParameter(2);
-	
 
-		cutFile<<std::fixed<<numTimeBin<<" "<<std::setprecision(0)<<tstamp<<" "<<std::setprecision(4)<<RnPSD<<" "<<std::setprecision(4)<<RnPSDSigma<<" "<<std::setprecision(4)<<PoPSD<<" "<<std::setprecision(4)<<PoPSDSigma<<" "<<std::setprecision(4)<<RnEn<<" "<<std::setprecision(4)<<RnEnSigma<<" "<<std::setprecision(4)<<PoEn<<" "<<std::setprecision(4)<<PoEnSigma<<"\n";	
+		double RnPoDzMaxBin = hRnPoDz->GetBinCenter(hRnPoDz->GetMaximumBin());
+		fRnPoDzGaus = new TF1("fRnPoDzGaus","gaus",RnPoDzMaxBin-50,RnPoDzMaxBin+50);
+		hRnPoDz->Fit(fRnPoDzGaus,"RQ");
+		RnPoDz = fRnPoDzGaus->GetParameter(1);
+		RnPoDzSigma = fRnPoDzGaus->GetParameter(2);	
+
+		cutFile<<std::fixed<<numTimeBin<<" "<<std::setprecision(0)<<tstamp<<" "<<std::setprecision(4)<<RnPSD<<" "<<std::setprecision(4)<<RnPSDSigma<<" "<<std::setprecision(4)<<PoPSD<<" "<<std::setprecision(4)<<PoPSDSigma<<" "<<std::setprecision(4)<<RnEn<<" "<<std::setprecision(4)<<RnEnSigma<<" "<<std::setprecision(4)<<PoEn<<" "<<std::setprecision(4)<<PoEnSigma<<" "<<std::setprecision(4)<<RnPoDz<<" "<<std::setprecision(4)<<RnPoDzSigma<<"\n";	
 
 
 		numTimeBin++;

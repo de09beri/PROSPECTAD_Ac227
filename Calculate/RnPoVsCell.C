@@ -20,7 +20,47 @@
 #include "Header.C"
 
 
-void RnPoVsCell(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, double zLow, double zHigh, int dtFit){
+void RnPoVsCell(double promptPSDStdDev, double delayPSDStdDev, double promptEnStdDev, double delayEnStdDev, double dzStdDev, double zLow, double zHigh, double dtCut, bool boolESmear){
+	//---------------------------------------------------------------------------------
+	//Read in text file with PSD and energy information
+	//Creat bin by bin cuts for prompt and delay PSD and energy
+
+	vector<double> vPromptPSDCutLow, vDelayPSDCutLow, vPromptEnCutLow, vDelayEnCutLow, vDzCutLow, vDzCutHigh;
+
+	ifstream cutFile;
+	cutFile.open("/g/g20/berish1/AD_Ac227Analysis/PROSPECTAD_Ac227/Calculate/CutParameterPerCell.txt",ifstream::in);
+
+	int cellNum;
+	double RnPSD, RnPSDSigma, PoPSD, PoPSDSigma;
+	double RnEn,  RnEnSigma,  PoEn,  PoEnSigma;
+	double RnPoDz, RnPoDzSigma;
+
+	//double promptPSDStdDev = 3.5, delayPSDStdDev = 3.5, promptEnStdDev = 3.5, delayEnStdDev = 3.5, dzStdDev = 3.5;
+	double promptPSDCutLow, delayPSDCutLow, promptEnCutLow, delayEnCutLow, dzCutLow, dzCutHigh;
+
+	string line;
+	while(cutFile.good() & !cutFile.eof()){
+		getline(cutFile,line);
+
+		stringstream s(line);
+		s>>cellNum>>RnPSD>>RnPSDSigma>>PoPSD>>PoPSDSigma>>RnEn>>RnEnSigma>>PoEn>>PoEnSigma>>RnPoDz>>RnPoDzSigma;
+
+		promptPSDCutLow = RnPSD - (promptPSDStdDev*RnPSDSigma);
+		delayPSDCutLow  = PoPSD - (delayPSDStdDev*PoPSDSigma);
+		promptEnCutLow  = RnEn  - (promptEnStdDev*RnEnSigma);
+		delayEnCutLow   = PoEn  - (delayEnStdDev*PoEnSigma);
+		dzCutLow        = RnPoDz - (dzStdDev*RnPoDzSigma);
+		dzCutHigh       = RnPoDz + (dzStdDev*RnPoDzSigma);
+
+		vPromptPSDCutLow.push_back(promptPSDCutLow);
+		vDelayPSDCutLow.push_back(delayPSDCutLow);
+		vPromptEnCutLow.push_back(promptEnCutLow);
+		vDelayEnCutLow.push_back(delayEnCutLow);
+		vDzCutLow.push_back(dzCutLow);
+		vDzCutHigh.push_back(dzCutHigh);
+	}
+
+	cutFile.close();
 
 	TFile *histFile = new TFile(Form("%s/Ac227_HistsPerCell.root",gSystem->Getenv("AD_AC227ANALYSIS_RESULTS")),"RECREATE");
 
@@ -144,18 +184,18 @@ void RnPoVsCell(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 	double tstamp;
 	double promptLowPSDCut, promptHighPSDCut, promptLowEnCut, promptHighEnCut;
 	double delayLowPSDCut,  delayHighPSDCut,  delayLowEnCut,  delayHighEnCut;
-	double dzCut;
+	double dzCut, dzLowCut, dzHighCut;
 
 	// Get cut values
 	rnpo->GetEntry(0);
-	tstamp 			 = rnpo->tstamp;
-	promptLowPSDCut  = (p_lowPSD > rnpo->p_PSDCut[0]) ? p_lowPSD : rnpo->p_PSDCut[0]; 
+	tstamp 		 = rnpo->tstamp;
+	promptLowPSDCut  = rnpo->p_PSDCut[0]; 
 	promptHighPSDCut = rnpo->p_PSDCut[1];
-	delayLowPSDCut   = (d_lowPSD > rnpo->d_PSDCut[0]) ? d_lowPSD : rnpo->d_PSDCut[0];
+	delayLowPSDCut   = rnpo->d_PSDCut[0];
 	delayHighPSDCut  = rnpo->d_PSDCut[1];
-	promptLowEnCut   = (p_lowE > rnpo->p_ECut[0]) ? p_lowE : rnpo->p_ECut[0];
+	promptLowEnCut   = rnpo->p_ECut[0];
 	promptHighEnCut  = rnpo->p_ECut[1];
-	delayLowEnCut    = (d_lowE > rnpo->d_ECut[0]) ? d_lowE : rnpo->d_ECut[0];
+	delayLowEnCut    = rnpo->d_ECut[0];
 	delayHighEnCut   = rnpo->d_ECut[1];
 	dzCut            = rnpo->dzCut;
 
@@ -187,15 +227,25 @@ void RnPoVsCell(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 
 		seg = rnpo->d_seg;
 
-/*
-		double rnpo_p_E = rnpo->p_ESmear;	
-		double rnpo_d_E = rnpo->d_ESmear;
-		double rnpo_f_E = rnpo->f_ESmear;
-*/
-
 		double rnpo_p_E = rnpo->p_E;	
 		double rnpo_d_E = rnpo->d_E;
 		double rnpo_f_E = rnpo->f_E;
+
+		if(boolESmear){
+			rnpo_p_E = rnpo->p_ESmear;	
+			rnpo_d_E = rnpo->d_ESmear;
+			rnpo_f_E = rnpo->f_ESmear;
+		}
+
+		promptLowPSDCut = vPromptPSDCutLow[seg];
+		delayLowPSDCut  = vDelayPSDCutLow[seg];
+		promptLowEnCut  = vPromptEnCutLow[seg];
+		delayLowEnCut = vDelayEnCutLow[seg];	
+		dzLowCut  = vDzCutLow[seg];
+		dzHighCut = vDzCutHigh[seg];
+
+		if(dzLowCut < -1.0*dzCut) dzLowCut = -1.0*dzCut;
+		if(dzHighCut > dzCut) dzHighCut = dzCut;
 
 		if(rnpo->d_PSD < delayLowPSDCut || rnpo->d_E < delayLowEnCut) continue;
 		if(rnpo->d_z < zLow || rnpo->d_z > zHigh) continue;
@@ -208,12 +258,12 @@ void RnPoVsCell(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 
 		//if prompt-delay pair
 		dt = (rnpo->d_t - rnpo->p_t)*(1e-6);	//convert ns to ms	
-		if(rnpo->p_seg > -1 && rnpo->p_PSD>promptLowPSDCut && rnpo->p_E>promptLowEnCut && rnpo->p_z>zLow && rnpo->p_z<zHigh && dt > 0.5){
+		dz = rnpo->d_z - rnpo->p_z;
+		if(rnpo->p_seg > -1 && rnpo->p_PSD>promptLowPSDCut && rnpo->p_E>promptLowEnCut && rnpo->p_z>zLow && rnpo->p_z<zHigh && dt>dtCut && dz>dzLowCut && dz<dzHighCut){
 			hSelectSeg->Fill(rnpo->d_seg);		
 			
 			dt = (rnpo->d_t - rnpo->p_t)*(1e-6);	//convert ns to ms	
 			dz = rnpo->d_z - rnpo->p_z;
-
 
 			hSelectDt[seg]->Fill(dt);
 			hSelectPromptPSD[seg]->Fill(rnpo->p_PSD);
@@ -236,7 +286,8 @@ void RnPoVsCell(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 
 		//if prompt-delay BG pair
 		dt = (rnpo->f_t - rnpo->d_t)*(1e-6) - TIMEOFFSET;
-		if(rnpo->f_seg > -1 && rnpo->f_PSD>promptLowPSDCut && rnpo->f_E>promptLowEnCut && rnpo->f_z>zLow && rnpo->f_z<zHigh && dt > 0.5){
+		dz = rnpo->d_z - rnpo->f_z;
+		if(rnpo->f_seg > -1 && rnpo->f_PSD>promptLowPSDCut && rnpo->f_E>promptLowEnCut && rnpo->f_z>zLow && rnpo->f_z<zHigh && dt>dtCut && dz>dzLowCut && dz<dzHighCut){
 			hBGSeg->Fill(rnpo->d_seg);
 		
 			dt = (rnpo->f_t - rnpo->d_t)*(1e-6) - TIMEOFFSET;
@@ -381,10 +432,16 @@ void RnPoVsCell(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 
 		double BGRate = (hBGDt[i]->GetEntries()/livetime)*(1e6);
 
+		promptLowPSDCut = vPromptPSDCutLow[i];
+		delayLowPSDCut  = vDelayPSDCutLow[i];
+		promptLowEnCut  = vPromptEnCutLow[i];
+		delayLowEnCut = vDelayEnCutLow[i];	
+		dzLowCut  = vDzCutLow[i];
+		dzHighCut = vDzCutHigh[i];
+
 	//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 	//Fit distributions
-		fRnPoDtExp = new TF1("fRnPoDtExp",Form("[0]*exp(-x/[1])*(%f/[1])",dtBinWidth),0.0,dtMax);
-		//fRnPoDtExp = new TF1("fRnPoDtExp",Form("[0]*exp(-x/[1])*(%f/[1])",dtBinWidth),0.5,11);
+		fRnPoDtExp = new TF1("fRnPoDtExp",Form("[0]*exp(-x/[1])*(%f/[1])",dtBinWidth),0.5,11);
 		fRnPoDtExp->SetParameter(1,POLIFETIME);
 		hRnPoDt[i]->Fit(fRnPoDtExp,"R0");	
 
@@ -432,7 +489,7 @@ void RnPoVsCell(double p_lowPSD, double d_lowPSD, double p_lowE, double d_lowE, 
 		delayEnEff = fPoEnGaus->Integral(delayLowEnCut,delayHighEnCut)/fPoEnGaus->Integral(EnMin,EnMax);
 		delayEnEffErr = sqrt((delayEnEff*(1-delayEnEff))/hPoEn[i]->GetEntries()); 
 
-		dzEff = fRnPoDzGaus->Integral(-dzCut,dzCut)/fRnPoDzGaus->Integral(dzMin,dzMax);
+		dzEff = fRnPoDzGaus->Integral(dzLowCut,dzHighCut)/fRnPoDzGaus->Integral(dzMin,dzMax);
 		dzEffErr = sqrt((dzEff*(1-dzEff))/hRnPoDz[i]->GetEntries());
 
 		
